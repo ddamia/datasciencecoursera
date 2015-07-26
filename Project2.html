@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="author" content="DamiÃfÂ  Valero" />
+
+
+<title>Human and Economic Consequences of Atmospheric Phenomena</title>
+
+<script src="Project2_files/jquery-1.11.0/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="Project2_files/bootstrap-3.3.1/css/bootstrap.min.css" rel="stylesheet" />
+<script src="Project2_files/bootstrap-3.3.1/js/bootstrap.min.js"></script>
+<script src="Project2_files/bootstrap-3.3.1/shim/html5shiv.min.js"></script>
+<script src="Project2_files/bootstrap-3.3.1/shim/respond.min.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<link rel="stylesheet"
+      href="Project2_files/highlight/default.css"
+      type="text/css" />
+<script src="Project2_files/highlight/highlight.js"></script>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img { 
+  max-width:100%; 
+  height: auto; 
+}
+</style>
+<div class="container-fluid main-container">
+
+
+<div id="header">
+<h1 class="title">Human and Economic Consequences of Atmospheric Phenomena</h1>
+<h4 class="author"><em>DamiÃfÂ  Valero</em></h4>
+<h4 class="date"><em>Tuesday, July 21, 2015</em></h4>
+</div>
+
+
+<div id="synopsys" class="section level2">
+<h2>Synopsys</h2>
+<p>This document presents the study of the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.</p>
+<p>This project focuses on identifying which types of events are most harmful with respect to population health and which types of events have the greatest economic consequences. For answering this questions, the document will be divided in two parts: Data Processing, which includes reading, cleaning and transforming the data, and Results, which consists on presenting the tables and plots to answer the questions.</p>
+<p>The experiments used to answer this two questions and the code for creating them is provided in order to be fully reproducible.</p>
+</div>
+<div id="data-processing" class="section level2">
+<h2>1. Data Processing</h2>
+<div id="data-reading" class="section level3">
+<h3>1.1. Data reading</h3>
+<p>To start the project, the first step is to download the Storm dataset from the following <a href="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2">link</a>. After that, the data can be imported into R using the function <em>read.csv</em> and its parameters:</p>
+<pre class="r"><code># Clean the workspace
+rm(list=ls())
+gc()</code></pre>
+<pre><code>##          used (Mb) gc trigger (Mb) max used (Mb)
+## Ncells 282709 15.1     407500 21.8   350000 18.7
+## Vcells 502006  3.9     905753  7.0   785821  6.0</code></pre>
+<pre class="r"><code>library(knitr)</code></pre>
+<pre><code>## Warning: package &#39;knitr&#39; was built under R version 3.1.3</code></pre>
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;
+## 
+## The following object is masked from &#39;package:stats&#39;:
+## 
+##     filter
+## 
+## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(plyr)</code></pre>
+<pre><code>## -------------------------------------------------------------------------
+## You have loaded plyr after dplyr - this is likely to cause problems.
+## If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
+## library(plyr); library(dplyr)
+## -------------------------------------------------------------------------
+## 
+## Attaching package: &#39;plyr&#39;
+## 
+## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     arrange, count, desc, failwith, id, mutate, rename, summarise,
+##     summarize</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(scales)
+
+setwd(&quot;C:/Users/Damià/Desktop/Data science specialization/5.Reproducible Research/Project 2&quot;)
+data &lt;- read.csv(bzfile(&quot;repdata-data-StormData.csv.bz2&quot;,&quot;rt&quot;),
+                 header=TRUE, nrow=902297,
+                 colClasses = c(&quot;numeric&quot;, &quot;character&quot;, &quot;character&quot;, &quot;character&quot;,&quot;numeric&quot;,
+                                &quot;character&quot;,&quot;character&quot;,&quot;character&quot;,&quot;numeric&quot;,&quot;character&quot;,
+                                &quot;character&quot;,&quot;character&quot;,&quot;character&quot;,&quot;numeric&quot;,&quot;character&quot;,
+                                &quot;numeric&quot;,&quot;character&quot;,&quot;character&quot;,&quot;numeric&quot;,&quot;numeric&quot;,
+                                &quot;character&quot;,&quot;numeric&quot;,&quot;numeric&quot;,&quot;numeric&quot;,&quot;numeric&quot;,
+                                &quot;character&quot;,&quot;numeric&quot;,&quot;character&quot;,&quot;character&quot;,&quot;character&quot;,
+                                &quot;character&quot;,&quot;numeric&quot;,&quot;numeric&quot;,&quot;numeric&quot;,&quot;numeric&quot;,
+                                &quot;character&quot;,&quot;numeric&quot;))</code></pre>
+</div>
+<div id="data-cleaning" class="section level3">
+<h3>1.2. Data Cleaning</h3>
+<p>Although this part could be really long and detailed, I consider this not the purpose of the project, and due to lack of time the cleaning part will not be complex. One of the aims is to reduce the amount of data in order to process it faster. The approach is described as follows:</p>
+<ol style="list-style-type: decimal">
+<li>Projection: The first strategy is to reduce the number of columns. As this project focuses on studying the human and economic effect of the athmospheric phenomenas, the next columns will be choosen for the analysis: <strong>BGN_DATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP</strong>.</li>
+</ol>
+<pre class="r"><code>data &lt;- data[,c(&quot;BGN_DATE&quot;, &quot;EVTYPE&quot;, &quot;FATALITIES&quot;, &quot;INJURIES&quot;, &quot;PROPDMG&quot;, &quot;PROPDMGEXP&quot;, &quot;CROPDMG&quot;, &quot;CROPDMGEXP&quot;)]
+
+#General information about the data
+str(data)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    902297 obs. of  8 variables:
+##  $ BGN_DATE  : chr  &quot;4/18/1950 0:00:00&quot; &quot;4/18/1950 0:00:00&quot; &quot;2/20/1951 0:00:00&quot; &quot;6/8/1951 0:00:00&quot; ...
+##  $ EVTYPE    : chr  &quot;TORNADO&quot; &quot;TORNADO&quot; &quot;TORNADO&quot; &quot;TORNADO&quot; ...
+##  $ FATALITIES: num  0 0 0 0 0 0 0 0 1 0 ...
+##  $ INJURIES  : num  15 0 2 2 2 6 1 0 14 0 ...
+##  $ PROPDMG   : num  25 2.5 25 2.5 2.5 2.5 2.5 2.5 25 25 ...
+##  $ PROPDMGEXP: chr  &quot;K&quot; &quot;K&quot; &quot;K&quot; &quot;K&quot; ...
+##  $ CROPDMG   : num  0 0 0 0 0 0 0 0 0 0 ...
+##  $ CROPDMGEXP: chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...</code></pre>
+<pre class="r"><code>summary(data)</code></pre>
+<pre><code>## Warning: cerrando la conenexion 5 (repdata-data-StormData.csv.bz2) que no
+## esta siendo utilizada</code></pre>
+<pre><code>##    BGN_DATE            EVTYPE            FATALITIES      
+##  Length:902297      Length:902297      Min.   :  0.0000  
+##  Class :character   Class :character   1st Qu.:  0.0000  
+##  Mode  :character   Mode  :character   Median :  0.0000  
+##                                        Mean   :  0.0168  
+##                                        3rd Qu.:  0.0000  
+##                                        Max.   :583.0000  
+##     INJURIES            PROPDMG         PROPDMGEXP       
+##  Min.   :   0.0000   Min.   :   0.00   Length:902297     
+##  1st Qu.:   0.0000   1st Qu.:   0.00   Class :character  
+##  Median :   0.0000   Median :   0.00   Mode  :character  
+##  Mean   :   0.1557   Mean   :  12.06                     
+##  3rd Qu.:   0.0000   3rd Qu.:   0.50                     
+##  Max.   :1700.0000   Max.   :5000.00                     
+##     CROPDMG         CROPDMGEXP       
+##  Min.   :  0.000   Length:902297     
+##  1st Qu.:  0.000   Class :character  
+##  Median :  0.000   Mode  :character  
+##  Mean   :  1.527                     
+##  3rd Qu.:  0.000                     
+##  Max.   :990.000</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Selection : This strategy consists on reducing the number of rows. Knowing that there are 2 different questions to be answered, the Storm data will be divided in two datasets. The first one will exclude all the rows with injuries &lt;= <strong>0</strong>. The second dataset will exclude all the rows with PROPDMGEXP = <strong>“”, ? and -</strong>, understanding that this values are NULL or just a little amount of money and also PROPDMG is greater than CROPDMG (eliminating both a lot of rows containing high values of PROPDMG are lost), based on <a href="https://rstudio-pubs-static.s3.amazonaws.com/58957_37b6723ee52b455990e149edde45e5b6.html">Source</a>.</li>
+</ol>
+<pre class="r"><code>data_human &lt;- filter(data, INJURIES &gt; 0)[,c(&quot;BGN_DATE&quot;, &quot;EVTYPE&quot;,&quot;FATALITIES&quot;, &quot;INJURIES&quot;)]
+  
+data_money &lt;- filter(data, !(PROPDMGEXP %in% c(&quot;&quot;,&quot;?&quot;,&quot;-&quot;)))
+data_money &lt;- filter(data_money, !(CROPDMGEXP %in% c(&quot;&quot;,&quot;?&quot;)))[,c(&quot;BGN_DATE&quot;, &quot;EVTYPE&quot;,&quot;PROPDMG&quot;, &quot;PROPDMGEXP&quot;, &quot;CROPDMG&quot;, &quot;CROPDMGEXP&quot;)]
+
+remove(data)</code></pre>
+</div>
+<div id="data-processing-1" class="section level3">
+<h3>1.3. Data Processing</h3>
+<p>This part consists on modifying some values and columns in order to get profitable data that could be used to obtain results in the next parts.</p>
+<div id="dates" class="section level4">
+<h4>Dates</h4>
+<pre class="r"><code>data_human$BGN_DATE &lt;- strptime(data_human$BGN_DATE, &quot;%m/%d/%Y %H:%M:%S&quot;)
+data_money$BGN_DATE &lt;- strptime(data_money$BGN_DATE, &quot;%m/%d/%Y %H:%M:%S&quot;)</code></pre>
+</div>
+<div id="damage" class="section level4">
+<h4>Damage</h4>
+<p>This variable is recorded in two columns of the Storm data. Registered as dollar amounts, sometimes stimated, and are rounded to three significant digits, followed by an alphabetical character signifying the magnitude of the number, i.e., 1.55B for $1,550,000,000.</p>
+<p>Looking at the magnitude column, the next values can be found:</p>
+<pre class="r"><code>data_money$PROPDMGEXP &lt;- as.factor(data_money$PROPDMGEXP)
+data_money$CROPDMGEXP &lt;- as.factor(data_money$CROPDMGEXP)
+levels(data_money$PROPDMGEXP)</code></pre>
+<pre><code>## [1] &quot;0&quot; &quot;3&quot; &quot;5&quot; &quot;B&quot; &quot;K&quot; &quot;m&quot; &quot;M&quot;</code></pre>
+<pre class="r"><code>levels(data_money$CROPDMGEXP)</code></pre>
+<pre><code>## [1] &quot;0&quot; &quot;B&quot; &quot;k&quot; &quot;K&quot; &quot;m&quot; &quot;M&quot;</code></pre>
+<p>The next approach is taken, based on this <a href="https://rstudio-pubs-static.s3.amazonaws.com/58957_37b6723ee52b455990e149edde45e5b6.html">Source</a>. The next values will be changed:</p>
+<ul>
+<li>H,h = hundreds = 100</li>
+<li>K,k = kilos = thousands = 1,000</li>
+<li>M,m = millions = 1,000,000</li>
+<li>B,b = billions = 1,000,000,000</li>
+<li>numeric 0..8 = 10</li>
+<li>(+) = 1</li>
+</ul>
+<p>As the values of CROPDMGEXP were not eliminated, the values of the exponent will be 0, so the effect is minimum.</p>
+<p>Finally, a <em>Damage</em> value is created, grouping both PROP and CROP variables, as in this case we are evaluating just the economic impact, mesured in dollars.</p>
+<pre class="r"><code>data_money$PROPDMGEXP &lt;- as.character(data_money$PROPDMGEXP)
+data_money$PROPDMGEXP&lt;-revalue(data_money$PROPDMGEXP, 
+                               c(&quot;0&quot;=10,&quot;3&quot;=10,&quot;5&quot;=10,&quot;K&quot;=1000,&quot;M&quot;=1000000,
+                                 &quot;m&quot;=1000000,&quot;B&quot;=1000000000))
+data_money$PROPDMGEXP &lt;- as.numeric(data_money$PROPDMGEXP)
+
+data_money$CROPDMGEXP &lt;- as.character(data_money$CROPDMGEXP)
+data_money$CROPDMGEXP&lt;-revalue(data_money$CROPDMGEXP, 
+                               c(&quot;0&quot;=10,&quot;K&quot;=1000,&quot;k&quot;=1000,&quot;M&quot;=1000000,
+                                 &quot;m&quot;=1000000))
+data_money$CROPDMGEXP &lt;- as.numeric(data_money$CROPDMGEXP)</code></pre>
+<pre><code>## Warning: NAs introducidos por coerción</code></pre>
+<pre class="r"><code>data_money &lt;- data_money[complete.cases(data_money$CROPDMGEXP),]
+
+data_money &lt;- mutate(data_money, cost = (data_money$PROPDMG * data_money$PROPDMGEXP + 
+                                           data_money$CROPDMG * data_money$CROPDMGEXP))</code></pre>
+</div>
+</div>
+<div id="harmful-events-for-population-health" class="section level3">
+<h3>1.3.1. Harmful events for population health</h3>
+<p>This part will prepare the data for extracting the results about the first question.</p>
+<pre class="r"><code>#Data frame with the number of fatalities depending on the type of event:
+Fatalities_per_event &lt;- as.data.frame(tapply(data_human$FATALITIES, data_human$EVTYPE, sum))
+Fatalities_per_event[,1] &lt;- as.numeric(Fatalities_per_event[,1])
+Fatalities_per_event[,2] &lt;- rownames(Fatalities_per_event)
+colnames(Fatalities_per_event) &lt;- c(&quot;Deads&quot;,&quot;Type_of_event&quot;)
+rownames(Fatalities_per_event) &lt;- NULL
+
+#Data frame with the number of inujuries depending on the type of event:
+Injuries_per_event &lt;- as.data.frame(tapply(data_human$INJURIES, data_human$EVTYPE, sum))
+Injuries_per_event[,1] &lt;- as.numeric(Injuries_per_event[,1])
+Injuries_per_event[,2] &lt;- rownames(Injuries_per_event)
+colnames(Injuries_per_event) &lt;- c(&quot;Injuries&quot;,&quot;Type_of_event&quot;)
+rownames(Injuries_per_event) &lt;- NULL
+
+#Final dataframe with both injuries and deads
+Human_damage &lt;- merge(Fatalities_per_event, Injuries_per_event)
+
+#Table:
+Human_damage</code></pre>
+<pre><code>##                      Type_of_event Deads Injuries
+## 1                        AVALANCHE    52      170
+## 2                        BLACK ICE     1       24
+## 3                         BLIZZARD    48      805
+## 4                     blowing snow     1        1
+## 5                     BLOWING SNOW     1       13
+## 6                       BRUSH FIRE     0        2
+## 7                    COASTAL FLOOD     0        2
+## 8         COASTAL FLOODING/EROSION     0        5
+## 9                    Coastal Storm     0        1
+## 10                   COASTAL STORM     1        1
+## 11                            COLD     8       48
+## 12                 COLD/WIND CHILL     3       12
+## 13                       DENSE FOG    14      342
+## 14                         DROUGHT     0        4
+## 15                  DRY MICROBURST     0       28
+## 16            DRY MIRCOBURST WINDS     0        1
+## 17                      Dust Devil     0        1
+## 18                      DUST DEVIL     0       42
+## 19                      DUST STORM    19      440
+## 20                  EXCESSIVE HEAT   402     6525
+## 21              EXCESSIVE RAINFALL     2       21
+## 22                  EXCESSIVE SNOW     0        2
+## 23                    EXTREME COLD    25      231
+## 24         EXTREME COLD/WIND CHILL    12       24
+## 25                    EXTREME HEAT     0      155
+## 26               EXTREME WINDCHILL     2        5
+## 27                FALLING SNOW/ICE     0        1
+## 28                     FLASH FLOOD   171     1777
+## 29                  FLASH FLOODING     0        8
+## 30                           FLOOD   104     6789
+## 31               FLOOD/FLASH FLOOD     3       15
+## 32                        FLOODING     2        2
+## 33                             FOG    38      734
+## 34       FOG AND COLD TEMPERATURES     1        1
+## 35                FREEZING DRIZZLE     2       15
+## 36                   FREEZING RAIN     2       23
+## 37                           FROST     1        3
+## 38                    FUNNEL CLOUD     0        3
+## 39                           GLAZE     7      216
+## 40                 GLAZE/ICE STORM     0       15
+## 41                      GUSTY WIND     0        1
+## 42                     Gusty winds     0        2
+## 43                     Gusty Winds     0        1
+## 44                     GUSTY WINDS     1        8
+## 45                            HAIL     3     1361
+## 46                  HAZARDOUS SURF     0        1
+## 47                            HEAT    73     2100
+## 48                       Heat Wave     0       70
+## 49                       HEAT WAVE    22      309
+## 50               HEAT WAVE DROUGHT     4       15
+## 51                      HEAVY RAIN    39      251
+## 52                     HEAVY RAINS     0        4
+## 53                      HEAVY SNOW    51     1021
+## 54               Heavy snow shower     0        2
+## 55   HEAVY SNOW/BLIZZARD/AVALANCHE     0        1
+## 56                  HEAVY SNOW/ICE     0       10
+## 57                      HEAVY SURF     1       40
+## 58            HEAVY SURF/HIGH SURF     8       48
+## 59                            HIGH     0        1
+## 60                       HIGH SEAS     2        8
+## 61                       High Surf     1        4
+## 62                       HIGH SURF    28      152
+## 63                       HIGH WIND   102     1137
+## 64                    HIGH WIND 48     0        1
+## 65              HIGH WIND AND SEAS     3       20
+## 66            HIGH WIND/HEAVY SNOW     0        1
+## 67                      HIGH WINDS    12      302
+## 68                 HIGH WINDS/COLD     0        4
+## 69                 HIGH WINDS/SNOW     3        6
+## 70                       HURRICANE    14       46
+## 71      HURRICANE-GENERATED SWELLS     0        2
+## 72               Hurricane Edouard     0        2
+## 73                 HURRICANE EMILY     0        1
+## 74                  HURRICANE ERIN     0        1
+## 75                  HURRICANE OPAL     0        1
+## 76               HURRICANE/TYPHOON    32     1275
+## 77                             ICE     3      137
+## 78                       ICE ROADS     0        1
+## 79                       ICE STORM    35     1975
+## 80           ICE STORM/FLASH FLOOD     0        2
+## 81                       ICY ROADS     5       31
+## 82                       LANDSLIDE    21       52
+## 83                      LANDSLIDES     1        1
+## 84                      LIGHT SNOW     1        2
+## 85                       LIGHTNING   283     5230
+## 86  LIGHTNING AND THUNDERSTORM WIN     0        1
+## 87                LIGHTNING INJURY     0        1
+## 88                 Marine Accident     1        2
+## 89                MARINE HIGH WIND     1        1
+## 90                   MARINE MISHAP     1        5
+## 91              MARINE STRONG WIND     3       22
+## 92        MARINE THUNDERSTORM WIND     7       26
+## 93                MARINE TSTM WIND     2        8
+## 94                    MIXED PRECIP     1       26
+## 95                        Mudslide     0        2
+## 96          NON-SEVERE WIND DAMAGE     0        7
+## 97                   NON TSTM WIND     0        1
+## 98                           OTHER     0        4
+## 99                       RAIN/SNOW     3        2
+## 100                    RECORD HEAT     0       50
+## 101                    RIP CURRENT    50      232
+## 102                   RIP CURRENTS    32      297
+## 103                    RIVER FLOOD     0        2
+## 104                 River Flooding     0        1
+## 105                     ROGUE WAVE     0        2
+## 106                     ROUGH SEAS     2        5
+## 107                     ROUGH SURF     2        1
+## 108                     SMALL HAIL     0       10
+## 109                           Snow     0        2
+## 110                           SNOW     3       29
+## 111                   SNOW AND ICE     0        1
+## 112                    SNOW SQUALL     0       35
+## 113                SNOW/HIGH WINDS     0       36
+## 114                    STORM SURGE     2       38
+## 115               STORM SURGE/TIDE     0        5
+## 116                    STRONG WIND    25      280
+## 117                   STRONG WINDS     1       21
+## 118                    THUNDERSNOW     1        1
+## 119                   THUNDERSTORM     0       12
+## 120            THUNDERSTORM  WINDS     0       10
+## 121              THUNDERSTORM WIND    54     1488
+## 122             THUNDERSTORM WINDS    25      908
+## 123          THUNDERSTORM WINDS 13     0        1
+## 124        THUNDERSTORM WINDS/HAIL     0        1
+## 125            THUNDERSTORM WINDSS     0        4
+## 126            THUNDERSTORMS WINDS     0        1
+## 127                  THUNDERSTORMW     0       27
+## 128                 TIDAL FLOODING     0        1
+## 129                        TORNADO  5227    91346
+## 130                     TORNADO F2     0       16
+## 131                     TORNADO F3     0        2
+## 132            Torrential Rainfall     0        4
+## 133                 TROPICAL STORM    12      340
+## 134          TROPICAL STORM GORDON     8       43
+## 135                      TSTM WIND   199     6957
+## 136                TSTM WIND (G40)     0        1
+## 137                TSTM WIND (G45)     0        3
+## 138                 TSTM WIND/HAIL     3       95
+## 139                        TSUNAMI    32      129
+## 140                        TYPHOON     0        5
+## 141              UNSEASONABLY WARM     0       17
+## 142           URBAN/SML STREAM FLD     9       79
+## 143                   WARM WEATHER     0        2
+## 144                     WATERSPOUT     0       29
+## 145             WATERSPOUT TORNADO     0        1
+## 146             WATERSPOUT/TORNADO     3       42
+## 147                     WILD FIRES     3      150
+## 148               WILD/FOREST FIRE     7      545
+## 149                       WILDFIRE    55      911
+## 150                           WIND    11       86
+## 151                          WINDS     0        1
+## 152                   WINTER STORM    85     1321
+## 153        WINTER STORM HIGH WINDS     1       15
+## 154                  WINTER STORMS    10       17
+## 155                 WINTER WEATHER    14      398
+## 156             WINTER WEATHER MIX     0       68
+## 157             WINTER WEATHER/MIX    17       72
+## 158                     WINTRY MIX     0       77</code></pre>
+<p>Taking a look at the final list, it can be seen that there are events that are part of the same family, and events written different that mean the same: for instance &quot; BLOWING SNOW&quot; and “blowing snow” are the same, and “WINTER STORM” and “WINTER WEATHER” can pertain to the same class.</p>
+<p>The next step to extract useful knowledge is to use Entity Resolution Techniques (task of identifying and linking/grouping different manifestations of the same real world object). In this case, a simple approach will be applied: a new factor column including the different groups of events will be created. The following groups will be created:</p>
+<ul>
+<li><p><strong>Snow</strong> : AVALANCHE, BLACK ICE, BLIZZARD, blowing snow, BLOWING SNOW, EXCESSIVE SNOW, FALLING SNOW/ICE, FROST, GLAZE, GLAZE/ICE STORM, HAIL, HEAVY SNOW, Heavy snow shower, HEAVY SNOW/BLIZZARD/AVALANCHE, HEAVY SNOW/ICE, ICE, ICE ROADS, ICE STORM, ICE STORM/FLASH FLOOD, ICY ROADS, LIGHT SNOW, RAIN/SNOW, SMALL HAIL, Snow, SNOW, SNOW AND ICE, SNOW SQUALL, SNOW/HIGH WINDS, THUNDERSNOW, WINTER WEATHER, WINTER WEATHER MIX, WINTER WEATHER/MIX, WINTRY MIX,FREEZE, FREEZING FOG, FROST/FREEZE, GLAZE ICE, HAIL 100, HAIL/WIND, HAIL/WINDS, HEAVY SNOW/HIGH WINDS &amp; FLOOD, LAKE-EFFECT SNOW, MARINE HAIL.</p></li>
+<li><p><strong>Fire</strong> : BRUSH FIRE, WILD FIRES, WILD/FOREST FIRE, WILDFIRE, DENSE SMOKE</p></li>
+<li><p><strong>Landslide</strong>: LANDSLIDE, LANDSLIDES, Mudslide.</p></li>
+<li><p><strong>Sea</strong> : HAZARDOUS SURF, HEAVY SURF, HEAVY SURF/HIGH SURF, HIGH, HIGH SEAS, High Surf, HIGH SURF, Marine Accident, MARINE MISHAP, RIP CURRENT, RIP CURRENTS, ROGUE WAVE, ROUGH SEAS, ROUGH SURF, TSUNAMI, WATERSPOUT, ASTRONOMICAL HIGH TIDE, ASTRONOMICAL LOW TIDE.</p></li>
+<li><p><strong>Lightning</strong>: LIGHTNING, LIGHTNING AND THUNDERSTORM WIN, LIGHTNING INJURY.</p></li>
+<li><p><strong>Cold</strong> : COLD, EXTREME COLD, EXTREME WINDCHILL .</p></li>
+<li><p><strong>Wind</strong> : COLD/WIND CHILL, DRY MIRCOBURST WINDS, EXTREME COLD/WIND CHILL, FUNNEL CLOUD, GUSTY WIND, Gusty winds, Gusty Winds, GUSTY WINDS, HIGH WIND, HIGH WIND 48, HIGH WIND AND SEAS, HIGH WIND/HEAVY SNOW, HIGH WINDS, HIGH WINDS/COLD, HIGH WINDS/SNOW, MARINE HIGH WIND, MARINE STRONG WIND, MARINE THUNDERSTORM WIND, MARINE TSTM WIND, NON-SEVERE WIND DAMAGE, NON TSTM WIND, STRONG WIND, STRONG WINDS, THUNDERSTORM WINDS, THUNDERSTORM WIND,THUNDERSTORM WINDS, THUNDERSTORM WINDS 13, THUNDERSTORM WINDS/HAIL, THUNDERSTORM WINDSS, THUNDERSTORMS WINDS, TSTM WIND, TSTM WIND (G40), TSTM WIND (G45), TSTM WIND/HAIL, WIND, WINDS,</p></li>
+</ul>
+<p>HIGH WINDS HEAVY RAINS, SEVERE THUNDERSTORM WINDS, THUDERSTORM WINDS, THUNDERSTORM HAIL, THUNDERSTORM WINDS HAIL, THUNDERSTORM WINDS LIGHTNING, THUNDERSTORM WINDS/ FLOOD, THUNDERSTORMS WIND, WIND DAMAGE.</p>
+<ul>
+<li><p><strong>Tornado</strong>: TORNADO, HURRICANE, HURRICANE-GENERATED SWELLS, Hurricane Edouard, HURRICANE EMILY, HURRICANE ERIN, HURRICANE OPAL, HURRICANE/TYPHOON, TORNADO F2, TORNADO F3, TYPHOON, WATERSPOUT TORNADO, WATERSPOUT/TORNADO, COLD AIR TORNADO, GUSTNADO, HURRICANE FELIX, HURRICANE OPAL/HIGH WINDS, TORNADO F0, TORNADOES, TSTM WIND, HAIL.</p></li>
+<li><p><strong>Fog</strong>: DENSE FOG, FOG, FOG AND COLD TEMPERATURES.</p></li>
+<li><p><strong>Dust</strong> : Dust Devil, DUST DEVIL, DUST STORM, DUST STORM/HIGH WINDS</p></li>
+<li><p><strong>Heat</strong> : DROUGHT, DRY MICROBURST, EXCESSIVE HEAT, EXTREME HEAT, HEAT, Heat Wave, HEAT WAVE, HEAT WAVE DROUGHT, RECORD HEAT, UNSEASONABLY WARM, WARM WEATHER.</p></li>
+<li><p><strong>Flood and Storm</strong> : COASTAL FLOOD, COASTAL FLOODING/EROSION, FLASH FLOOD, FLASH FLOODING, FLOOD, FLOOD/FLASH FLOOD, FLOODIN, Coastal Storm, COASTAL STORM, EXCESSIVE RAINFALL, FREEZING DRIZZLE, FREEZING RAIN, HEAVY RAIN, HEAVY RAINS, MIXED PRECIP, RIVER FLOOD, River Flooding, STORM SURGE, STORM SURGE/TIDE, THUNDERSTORM, THUNDERSTORMW, TIDAL FLOODING, Torrential Rainfall, TROPICAL STORM, TROPICAL STORM GORDON, URBAN/SML STREAM FLD, WINTER STORM, WINTER STORM HIGH WINDS, WINTER STORMS, COASTAL FLOODING, FLASH FLOOD/FLOOD, FLASH FLOODING/FLOOD, FLOODS, FLOODING, HEAVY RAINS/FLOODING, ICE JAM FLOODING, LAKESHORE FLOOD, RIVER FLOODING, TROPICAL DEPRESSION, TROPICAL STORM DEAN, TROPICAL STORM JERRY, URBAN FLOOD, URBAN FLOODING, SEVERE THUNDERSTORMS.</p></li>
+<li><p><strong>Other</strong>: OTHER.</p></li>
+</ul>
+<pre class="r"><code>Human_damage$Event&lt;-revalue(Human_damage$Type_of_event,
+                            c(&quot;AVALANCHE&quot;=&quot;Snow&quot;, &quot;BLACK ICE&quot;=&quot;Snow&quot;, &quot;BLIZZARD&quot;=&quot;Snow&quot;, &quot;blowing snow&quot;=&quot;Snow&quot;,&quot;BLOWING SNOW&quot;=&quot;Snow&quot;, &quot;EXCESSIVE SNOW&quot;=&quot;Snow&quot;, &quot;FALLING SNOW/ICE&quot;=&quot;Snow&quot;, &quot;FROST&quot;=&quot;Snow&quot;, &quot;GLAZE&quot;=&quot;Snow&quot;, &quot;GLAZE/ICE STORM&quot;=&quot;Snow&quot;, &quot;HAIL&quot;=&quot;Snow&quot;, &quot;HEAVY SNOW&quot;=&quot;Snow&quot;, &quot;Heavy snow shower&quot;=&quot;Snow&quot;, &quot;HEAVY SNOW/BLIZZARD/AVALANCHE&quot;=&quot;Snow&quot;, &quot;HEAVY SNOW/ICE&quot;=&quot;Snow&quot;, &quot;ICE&quot;=&quot;Snow&quot;, &quot;ICE ROADS&quot;=&quot;Snow&quot;, &quot;ICE STORM&quot;=&quot;Snow&quot;, &quot;ICE STORM/FLASH FLOOD&quot;=&quot;Snow&quot;, &quot;ICY ROADS&quot;=&quot;Snow&quot;, &quot;LIGHT SNOW&quot;=&quot;Snow&quot;, &quot;RAIN/SNOW&quot;=&quot;Snow&quot;, &quot;SMALL HAIL&quot;=&quot;Snow&quot;, &quot;Snow&quot;=&quot;Snow&quot;, &quot;SNOW&quot;=&quot;Snow&quot;, &quot;SNOW AND ICE&quot;=&quot;Snow&quot;, &quot;SNOW SQUALL&quot;=&quot;Snow&quot;, &quot;SNOW/HIGH WINDS&quot;=&quot;Snow&quot;, &quot;THUNDERSNOW&quot;=&quot;Snow&quot;, &quot;WINTER WEATHER&quot;=&quot;Snow&quot;, &quot;WINTER WEATHER MIX&quot;=&quot;Snow&quot;, &quot;WINTER WEATHER/MIX&quot;=&quot;Snow&quot;, &quot;WINTRY MIX&quot;=&quot;Snow&quot;,
+                            &quot;BRUSH FIRE&quot;=&quot;Fire&quot;, &quot;WILD FIRES&quot;=&quot;Fire&quot;, &quot;WILD/FOREST FIRE&quot;=&quot;Fire&quot;, &quot;WILDFIRE&quot;=&quot;Fire&quot;,
+                            &quot;LANDSLIDE&quot;=&quot;Landslide&quot;, &quot;LANDSLIDES&quot;=&quot;Landslide&quot;, &quot;Mudslide&quot;=&quot;Landslide&quot;, 
+                            
+                            &quot;HAZARDOUS SURF&quot;=&quot;Sea&quot;, &quot;HEAVY SURF&quot;=&quot;Sea&quot;, &quot;HEAVY SURF/HIGH SURF&quot;=&quot;Sea&quot;, &quot;HIGH&quot;=&quot;Sea&quot;, &quot;HIGH SEAS&quot;=&quot;Sea&quot;, &quot;High Surf&quot;=&quot;Sea&quot;, &quot;HIGH SURF&quot;=&quot;Sea&quot;, &quot;Marine Accident&quot;=&quot;Sea&quot;, &quot;MARINE MISHAP&quot;=&quot;Sea&quot;, &quot;RIP CURRENT&quot;=&quot;Sea&quot;, &quot;RIP CURRENTS&quot;=&quot;Sea&quot;, &quot;ROGUE WAVE&quot;=&quot;Sea&quot;, &quot;ROUGH SEAS&quot;=&quot;Sea&quot;, &quot;ROUGH SURF&quot;=&quot;Sea&quot;, &quot;TSUNAMI&quot;=&quot;Sea&quot;, &quot;WATERSPOUT&quot;=&quot;Sea&quot;,
+                            &quot;LIGHTNING&quot;=&quot;Lightning&quot;, &quot;LIGHTNING AND THUNDERSTORM WIN&quot;=&quot;Lightning&quot;, &quot;LIGHTNING INJURY&quot;=&quot;Lightning&quot;,
+                            &quot;COLD&quot;=&quot;Cold&quot;, &quot;EXTREME COLD&quot;=&quot;Cold&quot;, &quot;EXTREME WINDCHILL&quot;=&quot;Cold&quot;,
+                            &quot;LIGHTNING&quot;=&quot;Lightning&quot;, &quot;LIGHTNING AND THUNDERSTORM WIN&quot;=&quot;Lightning&quot;, &quot;LIGHTNING INJURY&quot;=&quot;Lightning&quot;, 
+                            &quot;COLD&quot;=&quot;Cold&quot;, &quot;EXTREME COLD&quot;=&quot;Cold&quot;, &quot;EXTREME WINDCHILL&quot;=&quot;Cold&quot;,
+                            
+                            &quot;COLD/WIND CHILL&quot;=&quot;Wind&quot;, &quot;DRY MIRCOBURST WINDS&quot;=&quot;Wind&quot;, &quot;EXTREME COLD/WIND CHILL&quot;=&quot;Wind&quot;, &quot;FUNNEL CLOUD&quot;=&quot;Wind&quot;, &quot;GUSTY WIND&quot;=&quot;Wind&quot;, &quot;Gusty winds&quot;=&quot;Wind&quot;, &quot;Gusty Winds&quot;=&quot;Wind&quot;, &quot;GUSTY WINDS&quot;=&quot;Wind&quot;, &quot;HIGH WIND&quot;=&quot;Wind&quot;, &quot;HIGH WIND 48&quot;=&quot;Wind&quot;, &quot;HIGH WIND AND SEAS&quot;=&quot;Wind&quot;, &quot;HIGH WIND/HEAVY SNOW&quot;=&quot;Wind&quot;, &quot;HIGH WINDS&quot;=&quot;Wind&quot;, &quot;HIGH WINDS/COLD&quot;=&quot;Wind&quot;, &quot;HIGH WINDS/SNOW&quot;=&quot;Wind&quot;, &quot;MARINE HIGH WIND&quot;=&quot;Wind&quot;,   &quot;MARINE STRONG WIND&quot;=&quot;Wind&quot;, &quot;MARINE THUNDERSTORM WIND&quot;=&quot;Wind&quot;, &quot;MARINE TSTM WIND&quot;=&quot;Wind&quot;, &quot;NON-SEVERE WIND DAMAGE&quot;=&quot;Wind&quot;, &quot;NON TSTM WIND&quot;=&quot;Wind&quot;, &quot;STRONG WIND&quot;=&quot;Wind&quot;, &quot;STRONG WINDS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM  WINDS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WIND&quot;=&quot;Wind&quot;,&quot;THUNDERSTORM WINDS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDS 13&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDS/HAIL&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDSS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORMS WINDS&quot;=&quot;Wind&quot;, &quot;TSTM WIND&quot;=&quot;Wind&quot;, &quot;TSTM WIND (G40)&quot;=&quot;Wind&quot;, &quot;TSTM WIND (G45)&quot;=&quot;Wind&quot;, &quot;TSTM WIND/HAIL&quot;=&quot;Wind&quot;, &quot;WIND&quot;=&quot;Wind&quot;, &quot;WINDS&quot;=&quot;Wind&quot;, 
+                            
+                            &quot;TORNADO&quot;=&quot;Tornado&quot;, &quot;HURRICANE&quot;=&quot;Tornado&quot;, &quot;HURRICANE-GENERATED SWELLS&quot;=&quot;Tornado&quot;, &quot;Hurricane Edouard&quot;=&quot;Tornado&quot;, &quot;HURRICANE EMILY&quot;=&quot;Tornado&quot;, &quot;HURRICANE ERIN&quot;=&quot;Tornado&quot;, &quot;HURRICANE OPAL&quot;=&quot;Tornado&quot;, &quot;HURRICANE/TYPHOON&quot;=&quot;Tornado&quot;, &quot;TORNADO F2&quot;=&quot;Tornado&quot;, &quot;TORNADO F3&quot;=&quot;Tornado&quot;, &quot;TYPHOON&quot;=&quot;Tornado&quot;, &quot;WATERSPOUT TORNADO&quot;=&quot;Tornado&quot;, &quot;WATERSPOUT/TORNADO&quot;=&quot;Tornado&quot;,
+                            
+                            &quot;DENSE FOG&quot;=&quot;Fog&quot;, &quot;FOG&quot;=&quot;Fog&quot;, &quot;FOG AND COLD TEMPERATURES&quot;=&quot;Fog&quot;,
+                            
+                            &quot;Dust Devil&quot;=&quot;Dust&quot;, &quot;DUST DEVIL&quot;=&quot;Dust&quot;, &quot;DUST STORM&quot;=&quot;Dust&quot;,
+                            
+                           &quot;DROUGHT&quot; =&quot;Heat&quot;, &quot;DRY MICROBURST&quot; =&quot;Heat&quot;, &quot;EXCESSIVE HEAT&quot; =&quot;Heat&quot;, &quot;EXTREME HEAT&quot; =&quot;Heat&quot;, &quot;HEAT&quot; =&quot;Heat&quot;, &quot;Heat Wave&quot; =&quot;Heat&quot;, &quot;HEAT WAVE&quot; =&quot;Heat&quot;, &quot;HEAT WAVE DROUGHT&quot; =&quot;Heat&quot;,  &quot;RECORD HEAT&quot; =&quot;Heat&quot;, &quot;UNSEASONABLY WARM&quot; =&quot;Heat&quot;, &quot;WARM WEATHER&quot; =&quot;Heat&quot;,
+                           
+                           &quot;COASTAL FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;COASTAL FLOODING/EROSION&quot;=&quot;Storm/Flood&quot;, &quot;FLASH FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLASH FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLOOD/FLASH FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLOODIN&quot;=&quot;Storm/Flood&quot;, &quot;Coastal Storm&quot;=&quot;Storm/Flood&quot;, &quot;COASTAL STORM&quot;=&quot;Storm/Flood&quot;, &quot;EXCESSIVE RAINFALL&quot;=&quot;Storm/Flood&quot;, &quot;FREEZING DRIZZLE&quot;=&quot;Storm/Flood&quot;, &quot;FREEZING RAIN&quot;=&quot;Storm/Flood&quot;, &quot;HEAVY RAIN&quot;=&quot;Storm/Flood&quot;, &quot;HEAVY RAINS&quot;=&quot;Storm/Flood&quot;, &quot;MIXED PRECIP&quot;=&quot;Storm/Flood&quot;, &quot;RIVER FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;River Flooding&quot;=&quot;Storm/Flood&quot;, &quot;STORM SURGE&quot;=&quot;Storm/Flood&quot;, &quot;STORM SURGE/TIDE&quot;=&quot;Storm/Flood&quot;, &quot;THUNDERSTORM&quot;=&quot;Storm/Flood&quot;, &quot;THUNDERSTORMW&quot;=&quot;Storm/Flood&quot;, &quot;TIDAL FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;Torrential Rainfall&quot;=&quot;Storm/Flood&quot;, &quot;TROPICAL STORM&quot;=&quot;Storm/Flood&quot;, &quot;TROPICAL STORM GORDON&quot;=&quot;Storm/Flood&quot;, &quot;URBAN/SML STREAM FLD&quot;=&quot;Storm/Flood&quot;, &quot;WINTER STORM&quot;=&quot;Storm/Flood&quot;, &quot;WINTER STORM HIGH WINDS&quot;=&quot;Storm/Flood&quot;, &quot;WINTER STORMS&quot;=&quot;Storm/Flood&quot;,
+                           
+                           &quot;OTHER&quot;=&quot;Other&quot;))</code></pre>
+<pre><code>## The following `from` values were not present in `x`: LIGHTNING, LIGHTNING AND THUNDERSTORM WIN, LIGHTNING INJURY, COLD, EXTREME COLD, EXTREME WINDCHILL, FLOODIN</code></pre>
+<p>Now it is possible to create a more generic dataset:</p>
+<pre class="r"><code>#Data frame with the number of fatalities depending on the type of event:
+Fatalities_per_event2 &lt;- as.data.frame(tapply(Human_damage$Deads, Human_damage$Event, sum))
+Fatalities_per_event2[,1] &lt;- as.numeric(Fatalities_per_event2[,1])
+Fatalities_per_event2[,2] &lt;- rownames(Fatalities_per_event2)
+colnames(Fatalities_per_event2) &lt;- c(&quot;Deads&quot;,&quot;Event&quot;)
+rownames(Fatalities_per_event2) &lt;- NULL
+
+#Data frame with the number of inujuries depending on the type of event:
+Injuries_per_event2 &lt;- as.data.frame(tapply(Human_damage$Injuries, Human_damage$Event, sum))
+Injuries_per_event2[,1] &lt;- as.numeric(Injuries_per_event2[,1])
+Injuries_per_event2[,2] &lt;- rownames(Injuries_per_event2)
+colnames(Injuries_per_event2) &lt;- c(&quot;Injuries&quot;,&quot;Event&quot;)
+rownames(Injuries_per_event2) &lt;- NULL
+
+#Final dataframe with both injuries and deads
+Human_damage2 &lt;- merge(Fatalities_per_event2, Injuries_per_event2)
+
+#Table
+Human_damage2</code></pre>
+<pre><code>##          Event Deads Injuries
+## 1         Cold    35      284
+## 2         Dust    19      483
+## 3         Fire    65     1608
+## 4     FLOODING     2        2
+## 5          Fog    53     1077
+## 6         Heat   501     9275
+## 7    Landslide    22       55
+## 8    Lightning   283     5232
+## 9        Other     0        4
+## 10         Sea   160      956
+## 11        Snow   247     6524
+## 12 Storm/Flood   452    10843
+## 13     Tornado  5276    92740
+## 14        Wind   467    11445</code></pre>
+</div>
+<div id="economic-consequences-due-to-atmospheric-phenomena" class="section level3">
+<h3>1.3.2. Economic consequences due to atmospheric phenomena</h3>
+<p>This part will prepare the data for extracting the results about the second question.</p>
+<pre class="r"><code>#Data frame with the cost in dollars depending on the type of event:
+Money_damage &lt;- as.data.frame(tapply(data_money$cost, data_money$EVTYPE, sum))
+Money_damage[,1] &lt;- as.numeric(Money_damage[,1])
+Money_damage[,2] &lt;- rownames(Money_damage)
+colnames(Money_damage) &lt;- c(&quot;Cost&quot;,&quot;Type_of_event&quot;)
+rownames(Money_damage) &lt;- NULL
+
+#Table
+Money_damage</code></pre>
+<pre><code>##             Cost                 Type_of_event
+## 1           5000        ASTRONOMICAL HIGH TIDE
+## 2         320000         ASTRONOMICAL LOW TIDE
+## 3        2385800                     AVALANCHE
+## 4      207041000                      BLIZZARD
+## 5      167580560                 COASTAL FLOOD
+## 6       25356000              COASTAL FLOODING
+## 7            100              COLD AIR TORNADO
+## 8        2590000               COLD/WIND CHILL
+## 9        2842000                     DENSE FOG
+## 10        100000                   DENSE SMOKE
+## 11    1886417000                       DROUGHT
+## 12        123000                DRY MICROBURST
+## 13        381130                    DUST DEVIL
+## 14       5749000                    DUST STORM
+## 15        550000         DUST STORM/HIGH WINDS
+## 16     493803200                EXCESSIVE HEAT
+## 17       4610000                  EXTREME COLD
+## 18       7038000       EXTREME COLD/WIND CHILL
+## 19    8715885664                   FLASH FLOOD
+## 20     271505000             FLASH FLOOD/FLOOD
+## 21      71138050                FLASH FLOODING
+## 22       1925000          FLASH FLOODING/FLOOD
+## 23  138007444500                         FLOOD
+## 24     163434000             FLOOD/FLASH FLOOD
+## 25      64320500                      FLOODING
+## 26        550000                        FLOODS
+## 27         32000                           FOG
+## 28       5500000                  FOREST FIRES
+## 29        675000                        FREEZE
+## 30       2182000                  FREEZING FOG
+## 31       1100000                  Frost/Freeze
+## 32     941281000                  FROST/FREEZE
+## 33         65100                  FUNNEL CLOUD
+## 34        305300                     GLAZE ICE
+## 35         52600                      GUSTNADO
+## 36        345000                   GUSTY WINDS
+## 37   10045596890                          HAIL
+## 38         15000                      HAIL 100
+## 39           550                     HAIL/WIND
+## 40        550000                    HAIL/WINDS
+## 41       2390000                          HEAT
+## 42        310000                     HEAT WAVE
+## 43        250000             HEAT WAVE DROUGHT
+## 44     375287730                    HEAVY RAIN
+## 45      15000000          Heavy Rain/High Surf
+## 46      71500000                   HEAVY RAINS
+## 47       5073000          HEAVY RAINS/FLOODING
+## 48     309935100                    HEAVY SNOW
+## 49       1520000 HEAVY SNOW/HIGH WINDS &amp; FLOOD
+## 50             0          HEAVY SURF/HIGH SURF
+## 51      83017500                     HIGH SURF
+## 52    3057666640                     HIGH WIND
+## 53         50000            HIGH WIND AND SEAS
+## 54     111505550                    HIGH WINDS
+## 55       7510000        HIGH WINDS HEAVY RAINS
+## 56     117500000               HIGH WINDS/COLD
+## 57   12405268000                     HURRICANE
+## 58     262010000                HURRICANE ERIN
+## 59       1000000               HURRICANE FELIX
+## 60    2187000000                HURRICANE OPAL
+## 61     110000000     HURRICANE OPAL/HIGH WINDS
+## 62   21958167800             HURRICANE/TYPHOON
+## 63      10000000              ICE JAM FLOODING
+## 64     924651300                     ICE STORM
+## 65         47000                     ICY ROADS
+## 66      40035000              LAKE-EFFECT SNOW
+## 67       7540000               LAKESHORE FLOOD
+## 68     170320500                     LANDSLIDE
+## 69     320786130                     LIGHTNING
+## 70          4000                   MARINE HAIL
+## 71       1140010              MARINE HIGH WIND
+## 72        403330            MARINE STRONG WIND
+## 73        486400      MARINE THUNDERSTORM WIND
+## 74          1000                   RIP CURRENT
+## 75     108369000                   RIVER FLOOD
+## 76     134010000                River Flooding
+## 77         55000                RIVER FLOODING
+## 78        100000                        SEICHE
+## 79      29150000     SEVERE THUNDERSTORM WINDS
+## 80      17500000          SEVERE THUNDERSTORMS
+## 81             0                         SLEET
+## 82        540000                    SMALL HAIL
+## 83         11000                          SNOW
+## 84       2920000                   STORM SURGE
+## 85    4641493000              STORM SURGE/TIDE
+## 86     184200560                   STRONG WIND
+## 87         55000             THUDERSTORM WINDS
+## 88         55000             THUNDERSTORM HAIL
+## 89    3813647990             THUNDERSTORM WIND
+## 90     466284200            THUNDERSTORM WINDS
+## 91         97000       THUNDERSTORM WINDS HAIL
+## 92         15000  THUNDERSTORM WINDS LIGHTNING
+## 93         40000     THUNDERSTORM WINDS/ FLOOD
+## 94         50000       THUNDERSTORM WINDS/HAIL
+## 95       1774550           THUNDERSTORM WINDSS
+## 96         10000                 THUNDERSTORMS
+## 97         15000            THUNDERSTORMS WIND
+## 98          6000           THUNDERSTORMS WINDS
+## 99   16570328280                       TORNADO
+## 100        17400                    TORNADO F0
+## 101   1602500000    TORNADOES, TSTM WIND, HAIL
+## 102      1302000           TROPICAL DEPRESSION
+## 103   1508302350                TROPICAL STORM
+## 104       450000           TROPICAL STORM DEAN
+## 105      1000000         TROPICAL STORM GORDON
+## 106     20600000          TROPICAL STORM JERRY
+## 107   1155590110                     TSTM WIND
+## 108     28642000                TSTM WIND/HAIL
+## 109    144082000                       TSUNAMI
+## 110     16555000                       TYPHOON
+## 111      4263500                   URBAN FLOOD
+## 112      4031500                URBAN FLOODING
+## 113     12096700          URBAN/SML STREAM FLD
+## 114            0              VOLCANIC ASHFALL
+## 115      5206200                    WATERSPOUT
+## 116    147549200              WILD/FOREST FIRE
+## 117        32000             WILD/FOREST FIRES
+## 118   3684468370                      WILDFIRE
+## 119      1000000                     WILDFIRES
+## 120        15000                   WIND DAMAGE
+## 121         5500                         WINDS
+## 122   1041568200                  WINTER STORM
+## 123     65000000       WINTER STORM HIGH WINDS
+## 124      1000000                 WINTER STORMS
+## 125     34897500                WINTER WEATHER</code></pre>
+<p>The same approach as the human health question will be applied in order to group the types of events. Some of them will be added to the previous list, as they are not in the population dataset.</p>
+<pre class="r"><code>Money_damage$Event&lt;-revalue(Money_damage$Type_of_event,
+                            c(&quot;AVALANCHE&quot;=&quot;Snow&quot;, &quot;BLACK ICE&quot;=&quot;Snow&quot;, &quot;BLIZZARD&quot;=&quot;Snow&quot;, &quot;blowing snow&quot;=&quot;Snow&quot;,&quot;BLOWING SNOW&quot;=&quot;Snow&quot;, &quot;EXCESSIVE SNOW&quot;=&quot;Snow&quot;, &quot;FALLING SNOW/ICE&quot;=&quot;Snow&quot;, &quot;FROST&quot;=&quot;Snow&quot;, &quot;GLAZE&quot;=&quot;Snow&quot;, &quot;GLAZE/ICE STORM&quot;=&quot;Snow&quot;, &quot;HAIL&quot;=&quot;Snow&quot;, &quot;HEAVY SNOW&quot;=&quot;Snow&quot;, &quot;Heavy snow shower&quot;=&quot;Snow&quot;, &quot;HEAVY SNOW/BLIZZARD/AVALANCHE&quot;=&quot;Snow&quot;, &quot;HEAVY SNOW/ICE&quot;=&quot;Snow&quot;, &quot;ICE&quot;=&quot;Snow&quot;, &quot;ICE ROADS&quot;=&quot;Snow&quot;, &quot;ICE STORM&quot;=&quot;Snow&quot;, &quot;ICE STORM/FLASH FLOOD&quot;=&quot;Snow&quot;, &quot;ICY ROADS&quot;=&quot;Snow&quot;, &quot;LIGHT SNOW&quot;=&quot;Snow&quot;, &quot;RAIN/SNOW&quot;=&quot;Snow&quot;, &quot;SMALL HAIL&quot;=&quot;Snow&quot;, &quot;Snow&quot;=&quot;Snow&quot;, &quot;SNOW&quot;=&quot;Snow&quot;, &quot;SNOW AND ICE&quot;=&quot;Snow&quot;, &quot;SNOW SQUALL&quot;=&quot;Snow&quot;, &quot;SNOW/HIGH WINDS&quot;=&quot;Snow&quot;, &quot;THUNDERSNOW&quot;=&quot;Snow&quot;, &quot;WINTER WEATHER&quot;=&quot;Snow&quot;, &quot;WINTER WEATHER MIX&quot;=&quot;Snow&quot;, &quot;WINTER WEATHER/MIX&quot;=&quot;Snow&quot;, &quot;WINTRY MIX&quot;=&quot;Snow&quot;,&quot;FREEZE&quot;=&quot;Snow&quot;, &quot;FREEZING FOG&quot;=&quot;Snow&quot;, &quot;FROST/FREEZE&quot;=&quot;Snow&quot;, &quot;GLAZE ICE&quot;=&quot;Snow&quot;, &quot;HAIL 100&quot;=&quot;Snow&quot;, &quot;HAIL/WIND&quot;=&quot;Snow&quot;, &quot;HAIL/WINDS&quot;=&quot;Snow&quot;, &quot;HEAVY SNOW/HIGH WINDS &amp; FLOOD&quot;=&quot;Snow&quot;, &quot;LAKE-EFFECT SNOW&quot;=&quot;Snow&quot;, &quot;MARINE HAIL&quot;=&quot;Snow&quot;, &quot;SLEET&quot;=&quot;Snow&quot;,
+
+                              
+                            &quot;BRUSH FIRE&quot;=&quot;Fire&quot;, &quot;WILD FIRES&quot;=&quot;Fire&quot;, &quot;WILD/FOREST FIRE&quot;=&quot;Fire&quot;, &quot;WILDFIRE&quot;=&quot;Fire&quot;,&quot;FOREST FIRES&quot;=&quot;Fire&quot;, &quot;WILD/FOREST FIRES&quot;=&quot;Fire&quot;, &quot;WILDFIRES&quot;=&quot;Fire&quot;,
+                            
+                            &quot;LANDSLIDE&quot;=&quot;Landslide&quot;, &quot;LANDSLIDES&quot;=&quot;Landslide&quot;, &quot;Mudslide&quot;=&quot;Landslide&quot;, 
+                            
+                            &quot;HAZARDOUS SURF&quot;=&quot;Sea&quot;, &quot;HEAVY SURF&quot;=&quot;Sea&quot;, &quot;HEAVY SURF/HIGH SURF&quot;=&quot;Sea&quot;, &quot;HIGH&quot;=&quot;Sea&quot;, &quot;HIGH SEAS&quot;=&quot;Sea&quot;, &quot;High Surf&quot;=&quot;Sea&quot;, &quot;HIGH SURF&quot;=&quot;Sea&quot;, &quot;Marine Accident&quot;=&quot;Sea&quot;, &quot;MARINE MISHAP&quot;=&quot;Sea&quot;, &quot;RIP CURRENT&quot;=&quot;Sea&quot;, &quot;RIP CURRENTS&quot;=&quot;Sea&quot;, &quot;ROGUE WAVE&quot;=&quot;Sea&quot;, &quot;ROUGH SEAS&quot;=&quot;Sea&quot;, &quot;ROUGH SURF&quot;=&quot;Sea&quot;, &quot;TSUNAMI&quot;=&quot;Sea&quot;, &quot;WATERSPOUT&quot;=&quot;Sea&quot;,  &quot;ASTRONOMICAL HIGH TIDE&quot;=&quot;Sea&quot;, &quot;ASTRONOMICAL LOW TIDE&quot;=&quot;Sea&quot;,
+                            
+                            &quot;LIGHTNING&quot;=&quot;Lightning&quot;, &quot;LIGHTNING AND THUNDERSTORM WIN&quot;=&quot;Lightning&quot;, &quot;LIGHTNING INJURY&quot;=&quot;Lightning&quot;,
+                            &quot;COLD&quot;=&quot;Cold&quot;, &quot;EXTREME COLD&quot;=&quot;Cold&quot;, &quot;EXTREME WINDCHILL&quot;=&quot;Cold&quot;,
+                            &quot;LIGHTNING&quot;=&quot;Lightning&quot;, &quot;LIGHTNING AND THUNDERSTORM WIN&quot;=&quot;Lightning&quot;, &quot;LIGHTNING INJURY&quot;=&quot;Lightning&quot;, 
+                            &quot;COLD&quot;=&quot;Cold&quot;, &quot;EXTREME COLD&quot;=&quot;Cold&quot;, &quot;EXTREME WINDCHILL&quot;=&quot;Cold&quot;,
+                            
+                            &quot;COLD/WIND CHILL&quot;=&quot;Wind&quot;, &quot;DRY MIRCOBURST WINDS&quot;=&quot;Wind&quot;, &quot;EXTREME COLD/WIND CHILL&quot;=&quot;Wind&quot;, &quot;FUNNEL CLOUD&quot;=&quot;Wind&quot;, &quot;GUSTY WIND&quot;=&quot;Wind&quot;, &quot;Gusty winds&quot;=&quot;Wind&quot;, &quot;Gusty Winds&quot;=&quot;Wind&quot;, &quot;GUSTY WINDS&quot;=&quot;Wind&quot;, &quot;HIGH WIND&quot;=&quot;Wind&quot;, &quot;HIGH WIND 48&quot;=&quot;Wind&quot;, &quot;HIGH WIND AND SEAS&quot;=&quot;Wind&quot;, &quot;HIGH WIND/HEAVY SNOW&quot;=&quot;Wind&quot;, &quot;HIGH WINDS&quot;=&quot;Wind&quot;, &quot;HIGH WINDS/COLD&quot;=&quot;Wind&quot;, &quot;HIGH WINDS/SNOW&quot;=&quot;Wind&quot;, &quot;MARINE HIGH WIND&quot;=&quot;Wind&quot;,   &quot;MARINE STRONG WIND&quot;=&quot;Wind&quot;, &quot;MARINE THUNDERSTORM WIND&quot;=&quot;Wind&quot;, &quot;MARINE TSTM WIND&quot;=&quot;Wind&quot;, &quot;NON-SEVERE WIND DAMAGE&quot;=&quot;Wind&quot;, &quot;NON TSTM WIND&quot;=&quot;Wind&quot;, &quot;STRONG WIND&quot;=&quot;Wind&quot;, &quot;STRONG WINDS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM  WINDS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WIND&quot;=&quot;Wind&quot;,&quot;THUNDERSTORM WINDS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDS 13&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDS/HAIL&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDSS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORMS WINDS&quot;=&quot;Wind&quot;, &quot;TSTM WIND&quot;=&quot;Wind&quot;, &quot;TSTM WIND (G40)&quot;=&quot;Wind&quot;, &quot;TSTM WIND (G45)&quot;=&quot;Wind&quot;, &quot;TSTM WIND/HAIL&quot;=&quot;Wind&quot;, &quot;WIND&quot;=&quot;Wind&quot;, &quot;WINDS&quot;=&quot;Wind&quot;, &quot;HIGH WINDS HEAVY RAINS&quot;=&quot;Wind&quot;, &quot;SEVERE THUNDERSTORM WINDS&quot;=&quot;Wind&quot;, &quot;THUDERSTORM WINDS&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM HAIL&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDS HAIL&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDS LIGHTNING&quot;=&quot;Wind&quot;, &quot;THUNDERSTORM WINDS/ FLOOD&quot;=&quot;Wind&quot;, &quot;THUNDERSTORMS WIND&quot;=&quot;Wind&quot;, &quot;WIND DAMAGE&quot;=&quot;Wind&quot;,
+                            
+                            &quot;TORNADO&quot;=&quot;Tornado&quot;, &quot;HURRICANE&quot;=&quot;Tornado&quot;, &quot;HURRICANE-GENERATED SWELLS&quot;=&quot;Tornado&quot;, &quot;Hurricane Edouard&quot;=&quot;Tornado&quot;, &quot;HURRICANE EMILY&quot;=&quot;Tornado&quot;, &quot;HURRICANE ERIN&quot;=&quot;Tornado&quot;, &quot;HURRICANE OPAL&quot;=&quot;Tornado&quot;, &quot;HURRICANE/TYPHOON&quot;=&quot;Tornado&quot;, &quot;TORNADO F2&quot;=&quot;Tornado&quot;, &quot;TORNADO F3&quot;=&quot;Tornado&quot;, &quot;TYPHOON&quot;=&quot;Tornado&quot;, &quot;WATERSPOUT TORNADO&quot;=&quot;Tornado&quot;, &quot;WATERSPOUT/TORNADO&quot;=&quot;Tornado&quot;, &quot;COLD AIR TORNADO&quot;=&quot;Tornado&quot;, &quot;GUSTNADO&quot;=&quot;Tornado&quot;, &quot;HURRICANE FELIX&quot;=&quot;Tornado&quot;, &quot;HURRICANE OPAL/HIGH WINDS&quot;=&quot;Tornado&quot;, &quot;TORNADO F0&quot;=&quot;Tornado&quot;, &quot;TORNADOES, TSTM WIND, HAIL&quot; = &quot;Tornado&quot;,
+                            
+                            &quot;DENSE FOG&quot;=&quot;Fog&quot;, &quot;FOG&quot;=&quot;Fog&quot;, &quot;FOG AND COLD TEMPERATURES&quot;=&quot;Fog&quot;,&quot;FREEZING FOG&quot;=&quot;Fog&quot;,
+                            
+                            &quot;Dust Devil&quot;=&quot;Dust&quot;, &quot;DUST DEVIL&quot;=&quot;Dust&quot;, &quot;DUST STORM&quot;=&quot;Dust&quot;, &quot;DENSE SMOKE&quot;=&quot;Dust&quot;, &quot;DUST STORM/HIGH WINDS&quot;=&quot;Dust&quot;, &quot;VOLCANIC ASHFALL&quot;=&quot;Dust&quot;,
+                            
+                           &quot;DROUGHT&quot; =&quot;Heat&quot;, &quot;DRY MICROBURST&quot; =&quot;Heat&quot;, &quot;EXCESSIVE HEAT&quot; =&quot;Heat&quot;, &quot;EXTREME HEAT&quot; =&quot;Heat&quot;, &quot;HEAT&quot; =&quot;Heat&quot;, &quot;Heat Wave&quot; =&quot;Heat&quot;, &quot;HEAT WAVE&quot; =&quot;Heat&quot;, &quot;HEAT WAVE DROUGHT&quot; =&quot;Heat&quot;,  &quot;RECORD HEAT&quot; =&quot;Heat&quot;, &quot;UNSEASONABLY WARM&quot; =&quot;Heat&quot;, &quot;WARM WEATHER&quot; =&quot;Heat&quot;,
+                           
+                           &quot;COASTAL FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;COASTAL FLOODING/EROSION&quot;=&quot;Storm/Flood&quot;, &quot;FLASH FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLASH FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLOOD/FLASH FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLOODIN&quot;=&quot;Storm/Flood&quot;, &quot;Coastal Storm&quot;=&quot;Storm/Flood&quot;, &quot;COASTAL STORM&quot;=&quot;Storm/Flood&quot;, &quot;EXCESSIVE RAINFALL&quot;=&quot;Storm/Flood&quot;, &quot;FREEZING DRIZZLE&quot;=&quot;Storm/Flood&quot;, &quot;FREEZING RAIN&quot;=&quot;Storm/Flood&quot;, &quot;HEAVY RAIN&quot;=&quot;Storm/Flood&quot;, &quot;HEAVY RAINS&quot;=&quot;Storm/Flood&quot;, &quot;MIXED PRECIP&quot;=&quot;Storm/Flood&quot;, &quot;RIVER FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;River Flooding&quot;=&quot;Storm/Flood&quot;, &quot;STORM SURGE&quot;=&quot;Storm/Flood&quot;, &quot;STORM SURGE/TIDE&quot;=&quot;Storm/Flood&quot;, &quot;THUNDERSTORM&quot;=&quot;Storm/Flood&quot;, &quot;THUNDERSTORMW&quot;=&quot;Storm/Flood&quot;, &quot;TIDAL FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;Torrential Rainfall&quot;=&quot;Storm/Flood&quot;, &quot;TROPICAL STORM&quot;=&quot;Storm/Flood&quot;, &quot;TROPICAL STORM GORDON&quot;=&quot;Storm/Flood&quot;, &quot;URBAN/SML STREAM FLD&quot;=&quot;Storm/Flood&quot;, &quot;WINTER STORM&quot;=&quot;Storm/Flood&quot;, &quot;WINTER STORM HIGH WINDS&quot;=&quot;Storm/Flood&quot;, &quot;WINTER STORMS&quot;=&quot;Storm/Flood&quot;, &quot;COASTAL FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;FLASH FLOOD/FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLASH FLOODING/FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;FLOODS&quot;=&quot;Storm/Flood&quot;, &quot;FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;HEAVY RAINS/FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;ICE JAM FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;LAKESHORE FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;RIVER FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;TROPICAL DEPRESSION&quot;=&quot;Storm/Flood&quot;, &quot;TROPICAL STORM DEAN&quot;=&quot;Storm/Flood&quot;, &quot;TROPICAL STORM JERRY&quot;=&quot;Storm/Flood&quot;, &quot;URBAN FLOOD&quot;=&quot;Storm/Flood&quot;, &quot;URBAN FLOODING&quot;=&quot;Storm/Flood&quot;, &quot;SEVERE THUNDERSTORMS&quot;=&quot;Storm/Flood&quot;, &quot;Heavy Rain/High Surf&quot; = &quot;Storm/Flood&quot;, &quot;SEICHE&quot; = &quot;Storm/Flood&quot;, &quot;THUNDERSTORMS&quot;= &quot;Storm/Flood&quot;))</code></pre>
+<pre><code>## The following `from` values were not present in `x`: BLACK ICE, blowing snow, BLOWING SNOW, EXCESSIVE SNOW, FALLING SNOW/ICE, FROST, GLAZE, GLAZE/ICE STORM, Heavy snow shower, HEAVY SNOW/BLIZZARD/AVALANCHE, HEAVY SNOW/ICE, ICE, ICE ROADS, ICE STORM/FLASH FLOOD, LIGHT SNOW, RAIN/SNOW, Snow, SNOW AND ICE, SNOW SQUALL, SNOW/HIGH WINDS, THUNDERSNOW, WINTER WEATHER MIX, WINTER WEATHER/MIX, WINTRY MIX, BRUSH FIRE, WILD FIRES, LANDSLIDES, Mudslide, HAZARDOUS SURF, HEAVY SURF, HIGH, HIGH SEAS, High Surf, Marine Accident, MARINE MISHAP, RIP CURRENTS, ROGUE WAVE, ROUGH SEAS, ROUGH SURF, LIGHTNING AND THUNDERSTORM WIN, LIGHTNING INJURY, COLD, EXTREME WINDCHILL, LIGHTNING, LIGHTNING AND THUNDERSTORM WIN, LIGHTNING INJURY, COLD, EXTREME COLD, EXTREME WINDCHILL, DRY MIRCOBURST WINDS, GUSTY WIND, Gusty winds, Gusty Winds, HIGH WIND 48, HIGH WIND/HEAVY SNOW, HIGH WINDS/SNOW, MARINE TSTM WIND, NON-SEVERE WIND DAMAGE, NON TSTM WIND, STRONG WINDS, THUNDERSTORM  WINDS, THUNDERSTORM WINDS 13, TSTM WIND (G40), TSTM WIND (G45), WIND, HURRICANE-GENERATED SWELLS, Hurricane Edouard, HURRICANE EMILY, TORNADO F2, TORNADO F3, WATERSPOUT TORNADO, WATERSPOUT/TORNADO, FOG AND COLD TEMPERATURES, FREEZING FOG, Dust Devil, EXTREME HEAT, Heat Wave, RECORD HEAT, UNSEASONABLY WARM, WARM WEATHER, COASTAL FLOODING/EROSION, FLOODIN, Coastal Storm, COASTAL STORM, EXCESSIVE RAINFALL, FREEZING DRIZZLE, FREEZING RAIN, MIXED PRECIP, THUNDERSTORM, THUNDERSTORMW, TIDAL FLOODING, Torrential Rainfall</code></pre>
+<p>Now it is possible to create a more generic dataset:</p>
+<pre class="r"><code>#Data frame with the number of fatalities depending on the type of event:
+Money_damage2 &lt;- as.data.frame(tapply(Money_damage$Cost, Money_damage$Event, sum))
+Money_damage2[,1] &lt;- as.numeric(Money_damage2[,1])
+Money_damage2[,2] &lt;- rownames(Money_damage2)
+colnames(Money_damage2) &lt;- c(&quot;Cost&quot;,&quot;Event&quot;)
+rownames(Money_damage2) &lt;- NULL
+
+#Table
+Money_damage2</code></pre>
+<pre><code>##            Cost        Event
+## 1       4610000         Cold
+## 2       6780130         Dust
+## 3    3838549570         Fire
+## 4       2874000          Fog
+## 5       1100000 Frost/Freeze
+## 6    2383293200         Heat
+## 7     170320500    Landslide
+## 8     320786130    Lightning
+## 9     232631700          Sea
+## 10  12511673440         Snow
+## 11 155537611254  Storm/Flood
+## 12  55112899180      Tornado
+## 13   8985942940         Wind</code></pre>
+</div>
+<div id="data-overview" class="section level3">
+<h3>1.4. Data Overview</h3>
+<p>The next step is having a look at the data. As this study evaluates the impact of the weather phenomena events to the human health and the economics, some statistics about number of injuries, fatalities and damage are provided.</p>
+<pre class="r"><code>#Information about fatalities
+number_of_fatalities = sum(Human_damage2$Deads, na.rm=T)
+number_of_injuries = sum(Human_damage2$Injuries, na.rm=T)
+total_damage = sum(Money_damage2$Cost, na.rm=T)</code></pre>
+<p>Taking into account that the database currently contains data from <strong>January 1950</strong> to <strong>November 2011</strong>, the obtained results are:</p>
+<ul>
+<li>Fatalities: The number of registered fatalities is <strong>7582</strong>. ()</li>
+<li>Injuries: The number of registered injuries is <strong>1.4052810^{5}</strong>.</li>
+<li>Damage: . In this case, the total amount is of <strong>2.391090710^{11}</strong>.</li>
+</ul>
+</div>
+</div>
+<div id="results" class="section level2">
+<h2>2. Results</h2>
+<div id="harmful-events-for-population-health-1" class="section level3">
+<h3>2.1. Harmful events for population health</h3>
+<p>This part will focus on identifying which are the atmospheric phenomena that have most impact on the health of the population. The created datased <em>Human_damage2</em> will be used in order to create a graphics that illustrates the results.</p>
+<p>The next two graphics represents the number of deads and the number of injuries depending on the type of event defined in the previous part.</p>
+<pre class="r"><code>  ggplot(Human_damage2,aes(x=Event, group=1))+ 
+    geom_bar(stat = &quot;identity&quot;, aes(y=Deads))+
+    labs(x=&quot;Event type&quot;,y=&quot;Deads&quot;)+
+    ggtitle(&quot;Number of deads per event type&quot;)+
+    theme_bw()+
+    scale_y_continuous(lim=c(0,5280), breaks=round(seq(0,6000,by=1000),1))+
+    theme(panel.grid.minor=element_line(colour=&quot;lightgrey&quot;),
+          panel.grid.major=element_line(colour=&quot;grey&quot;),
+          axis.text.x  = element_text(angle=45,hjust = 1,vjust = 1),
+          plot.title = element_text(face=&quot;bold&quot;))</code></pre>
+<p><img src="Project2_files/figure-html/unnamed-chunk-14-1.png" title="" alt="" width="672" /></p>
+<pre class="r"><code>  ggplot(Human_damage2,aes(x=Event, group=1))+ 
+    geom_bar(stat = &quot;identity&quot;, aes(y=Injuries))+
+    labs(x=&quot;Event type&quot;,y=&quot;Deads&quot;)+
+    ggtitle(&quot;Number of injuries per event type&quot;)+
+    theme_bw()+
+    scale_y_continuous(lim=c(0,100000), breaks=round(seq(0,100000,by=10000),1))+
+    theme(panel.grid.minor=element_line(colour=&quot;lightgrey&quot;),
+          panel.grid.major=element_line(colour=&quot;grey&quot;),
+          axis.text.x  = element_text(angle=45,hjust = 1,vjust = 1),
+          plot.title = element_text(face=&quot;bold&quot;))</code></pre>
+<p><img src="Project2_files/figure-html/unnamed-chunk-14-2.png" title="" alt="" width="672" /></p>
+<pre class="r"><code>  par(mfrow=c(1,1))</code></pre>
+<p>The conclusion is that <strong>Tornado</strong> and <strong>Wind</strong> phenomena are the most dangerous for the population by far.</p>
+<p>The next step is to find the concrete events that most affected to the population. The threshold is up to 200 deads and 6000 injuries.</p>
+<pre class="r"><code>quantile(Human_damage$Deads, probs=c(0.9, 0.95, 0.975, 1))</code></pre>
+<pre><code>##    90%    95%  97.5%   100% 
+##   38.3   74.8  173.1 5227.0</code></pre>
+<pre class="r"><code>quantile(Human_damage$Injuries, probs=c(0.9, 0.95, 0.975, 1))</code></pre>
+<pre><code>##       90%       95%     97.5%      100% 
+##   835.900  1531.350  5327.125 91346.000</code></pre>
+<pre class="r"><code>more_deads &lt;- which(Human_damage$Deads &gt; 200)
+more_inj &lt;-which(Human_damage$Injuries &gt; 5000)
+Human_damage[more_deads, &quot;Type_of_event&quot;]</code></pre>
+<pre><code>## [1] &quot;EXCESSIVE HEAT&quot; &quot;LIGHTNING&quot;      &quot;TORNADO&quot;</code></pre>
+<pre class="r"><code>Human_damage[more_inj, &quot;Type_of_event&quot;]</code></pre>
+<pre><code>## [1] &quot;EXCESSIVE HEAT&quot; &quot;FLOOD&quot;          &quot;LIGHTNING&quot;      &quot;TORNADO&quot;       
+## [5] &quot;TSTM WIND&quot;</code></pre>
+<p>And the event with more deads and injuies correspond to:</p>
+<pre class="r"><code>most_dead &lt;- which(Human_damage$Deads == 5227.0)
+more_inj &lt;-which(Human_damage$Injuries == 91346.000)
+Human_damage[most_dead, &quot;Type_of_event&quot;]</code></pre>
+<pre><code>## [1] &quot;TORNADO&quot;</code></pre>
+<pre class="r"><code>Human_damage[most_dead, &quot;Type_of_event&quot;]</code></pre>
+<pre><code>## [1] &quot;TORNADO&quot;</code></pre>
+</div>
+<div id="economic-consequences-due-to-atmospheric-phenomena-1" class="section level3">
+<h3>2.2. Economic consequences due to atmospheric phenomena</h3>
+<p>This part will focus on identifying which are the atmospheric phenomena that have most impact on the economic field. The created datased <em>Money_damage2</em> will be used in order to create a graphics that illustrates the results.</p>
+<p>The next graphics represents the total cost depending on the type of event.</p>
+<pre class="r"><code>  ggplot(Money_damage2,aes(x=Event, group=1))+ 
+    geom_bar(stat = &quot;identity&quot;, aes(y=Cost))+
+    labs(x=&quot;Event type&quot;,y=&quot;Cost [$]&quot;)+
+    ggtitle(&quot;Total cost per event type&quot;)+
+    theme_bw()+
+    scale_y_continuous(lim=c(0,1.56e+11), breaks=round(seq(0,1.56e+11,by=2e+10),1))+
+    theme(panel.grid.minor=element_line(colour=&quot;lightgrey&quot;),
+          panel.grid.major=element_line(colour=&quot;grey&quot;),
+          axis.text.x  = element_text(angle=45,hjust = 1,vjust = 1),
+          plot.title = element_text(face=&quot;bold&quot;))</code></pre>
+<p><img src="Project2_files/figure-html/unnamed-chunk-17-1.png" title="" alt="" width="672" /></p>
+<p>The conclusion is that <strong>Storm/Flood</strong> and <strong>Tornado</strong> phenomena are the most expensive for the Unitet States.</p>
+<p>The next step is to find the concrete events that most affected to the economic consequences. The threshold is up to 200 deads and 6000 injuries.</p>
+<pre class="r"><code>quantile(Money_damage$Deads, probs=c(0.9, 0.95, 0.975, 1))</code></pre>
+<pre><code>##   90%   95% 97.5%  100% 
+##    NA    NA    NA    NA</code></pre>
+<pre class="r"><code>more_cost &lt;- which(Money_damage$Deads &gt; 10000000000)
+Money_damage[more_cost, &quot;Type_of_event&quot;]</code></pre>
+<pre><code>## character(0)</code></pre>
+<p>And the event with more deads and injuies correspond to:</p>
+<pre class="r"><code>most_cost &lt;- which(Money_damage$Deads == 138007444500)
+Money_damage[most_cost, &quot;Type_of_event&quot;]</code></pre>
+<pre><code>## character(0)</code></pre>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>Tornados are the phenomena that kill more people, whereas Floods are the events that cause more destruction and material losses.</p>
+<div id="p.s." class="section level3">
+<h3>P.S.</h3>
+<p>Due to the lack of time, I could not do all the work I wish</p>
+</div>
+</div>
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+$(document).ready(function () {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+});
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

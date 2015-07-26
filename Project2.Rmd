@@ -1,0 +1,434 @@
+---
+title: "Human and Economic Consequences of Atmospheric Phenomena"
+author: "Dami√f∆'√???‚???T√f‚???s√,¬† Valero"
+date: "Tuesday, July 21, 2015"
+output:
+  pdf_document: default
+  html_document:
+    self_contained: no
+---
+##Synopsys
+
+This document presents the study of the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage. 
+
+This project focuses on identifying which types of events are most harmful with respect to population health and which types of events have the greatest economic consequences. For answering this questions, the document will be divided in two parts: Data Processing, which includes reading, cleaning and transforming the data, and Results, which consists on presenting the tables and plots to answer the questions.
+
+The experiments used to answer this two questions and the code for creating them is provided in order to be fully reproducible.
+
+
+##1. Data Processing
+
+###1.1. Data reading
+To start the project, the first step is to download the Storm dataset from the following [link](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2). After that, the data can be imported into R using the function *read.csv* and its parameters:
+
+```{r}
+# Clean the workspace
+rm(list=ls())
+gc()
+library(knitr)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+library(scales)
+
+setwd("C:/Users/Dami‡/Desktop/Data science specialization/5.Reproducible Research/Project 2")
+data <- read.csv(bzfile("repdata-data-StormData.csv.bz2","rt"),
+                 header=TRUE, nrow=902297,
+                 colClasses = c("numeric", "character", "character", "character","numeric",
+                                "character","character","character","numeric","character",
+                                "character","character","character","numeric","character",
+                                "numeric","character","character","numeric","numeric",
+                                "character","numeric","numeric","numeric","numeric",
+                                "character","numeric","character","character","character",
+                                "character","numeric","numeric","numeric","numeric",
+                                "character","numeric"))
+```
+
+###1.2. Data Cleaning
+
+Although this part could be really long and detailed, I consider this not the purpose of the project, and due to lack of time the cleaning part will not be complex. One of the aims is to reduce the amount of data in order to process it faster. The approach is described as follows: 
+
+1. Projection: The first strategy is to reduce the number of columns. As this project focuses on studying the human and economic effect of the athmospheric phenomenas, the next columns will be choosen for the analysis: **BGN_DATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP**.
+
+```{r}
+data <- data[,c("BGN_DATE", "EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
+
+#General information about the data
+str(data)
+summary(data)
+
+```
+
+2. Selection : This strategy consists on reducing the number of rows. Knowing that there are 2 different questions to be answered, the Storm data will be divided in two datasets. The first one will exclude all the rows with injuries <= **0**. The second dataset will exclude all the rows with PROPDMGEXP = **"", ? and -**, understanding that this values are NULL or just a little amount of money and also PROPDMG is greater than CROPDMG (eliminating both a lot of rows containing high values of PROPDMG are lost), based on [Source](https://rstudio-pubs-static.s3.amazonaws.com/58957_37b6723ee52b455990e149edde45e5b6.html).
+
+```{r}
+data_human <- filter(data, INJURIES > 0)[,c("BGN_DATE", "EVTYPE","FATALITIES", "INJURIES")]
+  
+data_money <- filter(data, !(PROPDMGEXP %in% c("","?","-")))
+data_money <- filter(data_money, !(CROPDMGEXP %in% c("","?")))[,c("BGN_DATE", "EVTYPE","PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
+
+remove(data)
+```
+
+
+###1.3. Data Processing
+
+This part consists on modifying some values and columns in order to get profitable data that could be used to obtain results in the next parts.
+
+####Dates
+```{r}
+data_human$BGN_DATE <- strptime(data_human$BGN_DATE, "%m/%d/%Y %H:%M:%S")
+data_money$BGN_DATE <- strptime(data_money$BGN_DATE, "%m/%d/%Y %H:%M:%S")
+```
+
+
+####Damage
+
+This variable is recorded in two columns of the Storm data. Registered as dollar amounts, sometimes stimated, and are rounded to three significant digits, followed by an alphabetical character signifying the magnitude of the number, i.e., 1.55B for $1,550,000,000.
+
+Looking at the magnitude column, the next values can be found: 
+```{r}
+data_money$PROPDMGEXP <- as.factor(data_money$PROPDMGEXP)
+data_money$CROPDMGEXP <- as.factor(data_money$CROPDMGEXP)
+levels(data_money$PROPDMGEXP)
+levels(data_money$CROPDMGEXP)
+```
+
+The next approach is taken, based on this [Source](https://rstudio-pubs-static.s3.amazonaws.com/58957_37b6723ee52b455990e149edde45e5b6.html). The next values will be changed: 
+
+- H,h = hundreds = 100
+- K,k = kilos = thousands = 1,000
+- M,m = millions = 1,000,000
+- B,b = billions = 1,000,000,000
+- numeric 0..8 = 10
+- (+) = 1
+
+As the values of CROPDMGEXP were not eliminated, the values of the exponent will be 0, so the effect is minimum. 
+
+Finally, a *Damage* value is created, grouping both PROP and CROP variables, as in this case we are evaluating just the economic impact, mesured in dollars. 
+
+```{r}
+data_money$PROPDMGEXP <- as.character(data_money$PROPDMGEXP)
+data_money$PROPDMGEXP<-revalue(data_money$PROPDMGEXP, 
+                               c("0"=10,"3"=10,"5"=10,"K"=1000,"M"=1000000,
+                                 "m"=1000000,"B"=1000000000))
+data_money$PROPDMGEXP <- as.numeric(data_money$PROPDMGEXP)
+
+data_money$CROPDMGEXP <- as.character(data_money$CROPDMGEXP)
+data_money$CROPDMGEXP<-revalue(data_money$CROPDMGEXP, 
+                               c("0"=10,"K"=1000,"k"=1000,"M"=1000000,
+                                 "m"=1000000))
+data_money$CROPDMGEXP <- as.numeric(data_money$CROPDMGEXP)
+data_money <- data_money[complete.cases(data_money$CROPDMGEXP),]
+
+data_money <- mutate(data_money, cost = (data_money$PROPDMG * data_money$PROPDMGEXP + 
+                                           data_money$CROPDMG * data_money$CROPDMGEXP))
+```
+
+
+###1.3.1. Harmful events for population health
+
+This part will prepare the data for extracting the results about the first question. 
+
+```{r}
+
+#Data frame with the number of fatalities depending on the type of event:
+Fatalities_per_event <- as.data.frame(tapply(data_human$FATALITIES, data_human$EVTYPE, sum))
+Fatalities_per_event[,1] <- as.numeric(Fatalities_per_event[,1])
+Fatalities_per_event[,2] <- rownames(Fatalities_per_event)
+colnames(Fatalities_per_event) <- c("Deads","Type_of_event")
+rownames(Fatalities_per_event) <- NULL
+
+#Data frame with the number of inujuries depending on the type of event:
+Injuries_per_event <- as.data.frame(tapply(data_human$INJURIES, data_human$EVTYPE, sum))
+Injuries_per_event[,1] <- as.numeric(Injuries_per_event[,1])
+Injuries_per_event[,2] <- rownames(Injuries_per_event)
+colnames(Injuries_per_event) <- c("Injuries","Type_of_event")
+rownames(Injuries_per_event) <- NULL
+
+#Final dataframe with both injuries and deads
+Human_damage <- merge(Fatalities_per_event, Injuries_per_event)
+
+#Table:
+Human_damage
+```
+
+Taking a look at the final list, it can be seen that there are events that are part of the same family, and events written different that mean the same: for instance " BLOWING SNOW" and "blowing snow" are the same, and "WINTER STORM" and "WINTER WEATHER" can pertain to the same class. 
+
+The next step to extract useful knowledge is to use Entity Resolution Techniques (task of identifying and linking/grouping different manifestations of the same real world object). In this case, a simple approach will be applied: a new factor column including the different groups of events will be created. The following groups will be created: 
+
+- **Snow** : AVALANCHE, BLACK ICE, BLIZZARD, blowing snow, BLOWING SNOW, EXCESSIVE SNOW, FALLING SNOW/ICE, FROST, GLAZE, GLAZE/ICE STORM, HAIL, HEAVY SNOW, Heavy snow shower, HEAVY SNOW/BLIZZARD/AVALANCHE, HEAVY SNOW/ICE, ICE, ICE ROADS, ICE STORM, ICE STORM/FLASH FLOOD, ICY ROADS, LIGHT SNOW, RAIN/SNOW, SMALL HAIL, Snow, SNOW, SNOW AND ICE, SNOW SQUALL, SNOW/HIGH WINDS, THUNDERSNOW, WINTER WEATHER, WINTER WEATHER MIX, WINTER WEATHER/MIX, WINTRY MIX,FREEZE, FREEZING FOG, FROST/FREEZE, GLAZE ICE, HAIL 100, HAIL/WIND, HAIL/WINDS, HEAVY SNOW/HIGH WINDS & FLOOD, LAKE-EFFECT SNOW, MARINE HAIL.
+
+- **Fire** : BRUSH FIRE, WILD FIRES, WILD/FOREST FIRE, WILDFIRE, DENSE SMOKE
+
+- **Landslide**: LANDSLIDE, LANDSLIDES, Mudslide. 
+
+- **Sea** : HAZARDOUS SURF, HEAVY SURF, HEAVY SURF/HIGH SURF, HIGH, HIGH SEAS, High Surf, HIGH SURF, Marine Accident, MARINE MISHAP, RIP CURRENT, RIP CURRENTS, ROGUE WAVE, ROUGH SEAS, ROUGH SURF, TSUNAMI, WATERSPOUT, ASTRONOMICAL HIGH TIDE, ASTRONOMICAL LOW TIDE. 
+
+- **Lightning**: LIGHTNING, LIGHTNING AND THUNDERSTORM WIN, LIGHTNING INJURY. 
+
+- **Cold**  : COLD, EXTREME COLD, EXTREME WINDCHILL .
+
+- **Wind** : COLD/WIND CHILL, DRY MIRCOBURST WINDS, EXTREME COLD/WIND CHILL, FUNNEL CLOUD, GUSTY WIND, Gusty winds, Gusty Winds, GUSTY WINDS, HIGH WIND, HIGH WIND 48, HIGH WIND AND SEAS, HIGH WIND/HEAVY SNOW, HIGH WINDS, HIGH WINDS/COLD, HIGH WINDS/SNOW, MARINE HIGH WIND, MARINE STRONG WIND, MARINE THUNDERSTORM WIND, MARINE TSTM WIND, NON-SEVERE WIND DAMAGE, NON TSTM WIND, STRONG WIND, STRONG WINDS, THUNDERSTORM  WINDS, THUNDERSTORM WIND,THUNDERSTORM WINDS, THUNDERSTORM WINDS 13, THUNDERSTORM WINDS/HAIL, THUNDERSTORM WINDSS, THUNDERSTORMS WINDS, TSTM WIND, TSTM WIND (G40), TSTM WIND (G45), TSTM WIND/HAIL, WIND, WINDS,
+
+HIGH WINDS HEAVY RAINS, SEVERE THUNDERSTORM WINDS, THUDERSTORM WINDS, THUNDERSTORM HAIL, THUNDERSTORM WINDS HAIL, THUNDERSTORM WINDS LIGHTNING, THUNDERSTORM WINDS/ FLOOD, THUNDERSTORMS WIND, WIND DAMAGE.
+
+- **Tornado**: TORNADO, HURRICANE, HURRICANE-GENERATED SWELLS, Hurricane Edouard, HURRICANE EMILY, HURRICANE ERIN, HURRICANE OPAL, HURRICANE/TYPHOON, TORNADO F2, TORNADO F3, TYPHOON, WATERSPOUT TORNADO, WATERSPOUT/TORNADO, COLD AIR TORNADO, GUSTNADO, HURRICANE FELIX, HURRICANE OPAL/HIGH WINDS, TORNADO F0, TORNADOES, TSTM WIND, HAIL.
+
+
+- **Fog**: DENSE FOG, FOG, FOG AND COLD TEMPERATURES.
+
+- **Dust** : Dust Devil, DUST DEVIL, DUST STORM, DUST STORM/HIGH WINDS
+
+- **Heat** : DROUGHT, DRY MICROBURST, EXCESSIVE HEAT, EXTREME HEAT, HEAT, Heat Wave, HEAT WAVE, HEAT WAVE DROUGHT,  RECORD HEAT, UNSEASONABLY WARM, WARM WEATHER.
+
+- **Flood and Storm** : COASTAL FLOOD, COASTAL FLOODING/EROSION, FLASH FLOOD, FLASH FLOODING, FLOOD, FLOOD/FLASH FLOOD, FLOODIN, Coastal Storm, COASTAL STORM, EXCESSIVE RAINFALL, FREEZING DRIZZLE, FREEZING RAIN, HEAVY RAIN, HEAVY RAINS, MIXED PRECIP, RIVER FLOOD, River Flooding, STORM SURGE, STORM SURGE/TIDE, THUNDERSTORM, THUNDERSTORMW, TIDAL FLOODING, Torrential Rainfall, TROPICAL STORM, TROPICAL STORM GORDON, URBAN/SML STREAM FLD, WINTER STORM, WINTER STORM HIGH WINDS, WINTER STORMS, COASTAL FLOODING, FLASH FLOOD/FLOOD, FLASH FLOODING/FLOOD, FLOODS, FLOODING, HEAVY RAINS/FLOODING, ICE JAM FLOODING, LAKESHORE FLOOD, RIVER FLOODING, TROPICAL DEPRESSION, TROPICAL STORM DEAN, TROPICAL STORM JERRY, URBAN FLOOD, URBAN FLOODING, SEVERE THUNDERSTORMS.
+
+- **Other**: OTHER.
+
+```{r}
+
+Human_damage$Event<-revalue(Human_damage$Type_of_event,
+                            c("AVALANCHE"="Snow", "BLACK ICE"="Snow", "BLIZZARD"="Snow", "blowing snow"="Snow","BLOWING SNOW"="Snow", "EXCESSIVE SNOW"="Snow", "FALLING SNOW/ICE"="Snow", "FROST"="Snow", "GLAZE"="Snow", "GLAZE/ICE STORM"="Snow", "HAIL"="Snow", "HEAVY SNOW"="Snow", "Heavy snow shower"="Snow", "HEAVY SNOW/BLIZZARD/AVALANCHE"="Snow", "HEAVY SNOW/ICE"="Snow", "ICE"="Snow", "ICE ROADS"="Snow", "ICE STORM"="Snow", "ICE STORM/FLASH FLOOD"="Snow", "ICY ROADS"="Snow", "LIGHT SNOW"="Snow", "RAIN/SNOW"="Snow", "SMALL HAIL"="Snow", "Snow"="Snow", "SNOW"="Snow", "SNOW AND ICE"="Snow", "SNOW SQUALL"="Snow", "SNOW/HIGH WINDS"="Snow", "THUNDERSNOW"="Snow", "WINTER WEATHER"="Snow", "WINTER WEATHER MIX"="Snow", "WINTER WEATHER/MIX"="Snow", "WINTRY MIX"="Snow",
+                            "BRUSH FIRE"="Fire", "WILD FIRES"="Fire", "WILD/FOREST FIRE"="Fire", "WILDFIRE"="Fire",
+                            "LANDSLIDE"="Landslide", "LANDSLIDES"="Landslide", "Mudslide"="Landslide", 
+                            
+                            "HAZARDOUS SURF"="Sea", "HEAVY SURF"="Sea", "HEAVY SURF/HIGH SURF"="Sea", "HIGH"="Sea", "HIGH SEAS"="Sea", "High Surf"="Sea", "HIGH SURF"="Sea", "Marine Accident"="Sea", "MARINE MISHAP"="Sea", "RIP CURRENT"="Sea", "RIP CURRENTS"="Sea", "ROGUE WAVE"="Sea", "ROUGH SEAS"="Sea", "ROUGH SURF"="Sea", "TSUNAMI"="Sea", "WATERSPOUT"="Sea",
+                            "LIGHTNING"="Lightning", "LIGHTNING AND THUNDERSTORM WIN"="Lightning", "LIGHTNING INJURY"="Lightning",
+                            "COLD"="Cold", "EXTREME COLD"="Cold", "EXTREME WINDCHILL"="Cold",
+                            "LIGHTNING"="Lightning", "LIGHTNING AND THUNDERSTORM WIN"="Lightning", "LIGHTNING INJURY"="Lightning", 
+                            "COLD"="Cold", "EXTREME COLD"="Cold", "EXTREME WINDCHILL"="Cold",
+                            
+                            "COLD/WIND CHILL"="Wind", "DRY MIRCOBURST WINDS"="Wind", "EXTREME COLD/WIND CHILL"="Wind", "FUNNEL CLOUD"="Wind", "GUSTY WIND"="Wind", "Gusty winds"="Wind", "Gusty Winds"="Wind", "GUSTY WINDS"="Wind", "HIGH WIND"="Wind", "HIGH WIND 48"="Wind", "HIGH WIND AND SEAS"="Wind", "HIGH WIND/HEAVY SNOW"="Wind", "HIGH WINDS"="Wind", "HIGH WINDS/COLD"="Wind", "HIGH WINDS/SNOW"="Wind", "MARINE HIGH WIND"="Wind",   "MARINE STRONG WIND"="Wind", "MARINE THUNDERSTORM WIND"="Wind", "MARINE TSTM WIND"="Wind", "NON-SEVERE WIND DAMAGE"="Wind", "NON TSTM WIND"="Wind", "STRONG WIND"="Wind", "STRONG WINDS"="Wind", "THUNDERSTORM  WINDS"="Wind", "THUNDERSTORM WIND"="Wind","THUNDERSTORM WINDS"="Wind", "THUNDERSTORM WINDS 13"="Wind", "THUNDERSTORM WINDS/HAIL"="Wind", "THUNDERSTORM WINDSS"="Wind", "THUNDERSTORMS WINDS"="Wind", "TSTM WIND"="Wind", "TSTM WIND (G40)"="Wind", "TSTM WIND (G45)"="Wind", "TSTM WIND/HAIL"="Wind", "WIND"="Wind", "WINDS"="Wind", 
+                            
+                            "TORNADO"="Tornado", "HURRICANE"="Tornado", "HURRICANE-GENERATED SWELLS"="Tornado", "Hurricane Edouard"="Tornado", "HURRICANE EMILY"="Tornado", "HURRICANE ERIN"="Tornado", "HURRICANE OPAL"="Tornado", "HURRICANE/TYPHOON"="Tornado", "TORNADO F2"="Tornado", "TORNADO F3"="Tornado", "TYPHOON"="Tornado", "WATERSPOUT TORNADO"="Tornado", "WATERSPOUT/TORNADO"="Tornado",
+                            
+                            "DENSE FOG"="Fog", "FOG"="Fog", "FOG AND COLD TEMPERATURES"="Fog",
+                            
+                            "Dust Devil"="Dust", "DUST DEVIL"="Dust", "DUST STORM"="Dust",
+                            
+                           "DROUGHT" ="Heat", "DRY MICROBURST" ="Heat", "EXCESSIVE HEAT" ="Heat", "EXTREME HEAT" ="Heat", "HEAT" ="Heat", "Heat Wave" ="Heat", "HEAT WAVE" ="Heat", "HEAT WAVE DROUGHT" ="Heat",  "RECORD HEAT" ="Heat", "UNSEASONABLY WARM" ="Heat", "WARM WEATHER" ="Heat",
+                           
+                           "COASTAL FLOOD"="Storm/Flood", "COASTAL FLOODING/EROSION"="Storm/Flood", "FLASH FLOOD"="Storm/Flood", "FLASH FLOODING"="Storm/Flood", "FLOOD"="Storm/Flood", "FLOOD/FLASH FLOOD"="Storm/Flood", "FLOODIN"="Storm/Flood", "Coastal Storm"="Storm/Flood", "COASTAL STORM"="Storm/Flood", "EXCESSIVE RAINFALL"="Storm/Flood", "FREEZING DRIZZLE"="Storm/Flood", "FREEZING RAIN"="Storm/Flood", "HEAVY RAIN"="Storm/Flood", "HEAVY RAINS"="Storm/Flood", "MIXED PRECIP"="Storm/Flood", "RIVER FLOOD"="Storm/Flood", "River Flooding"="Storm/Flood", "STORM SURGE"="Storm/Flood", "STORM SURGE/TIDE"="Storm/Flood", "THUNDERSTORM"="Storm/Flood", "THUNDERSTORMW"="Storm/Flood", "TIDAL FLOODING"="Storm/Flood", "Torrential Rainfall"="Storm/Flood", "TROPICAL STORM"="Storm/Flood", "TROPICAL STORM GORDON"="Storm/Flood", "URBAN/SML STREAM FLD"="Storm/Flood", "WINTER STORM"="Storm/Flood", "WINTER STORM HIGH WINDS"="Storm/Flood", "WINTER STORMS"="Storm/Flood",
+                           
+                           "OTHER"="Other"))
+
+```
+
+
+Now it is possible to create a more generic dataset: 
+
+```{r}
+
+#Data frame with the number of fatalities depending on the type of event:
+Fatalities_per_event2 <- as.data.frame(tapply(Human_damage$Deads, Human_damage$Event, sum))
+Fatalities_per_event2[,1] <- as.numeric(Fatalities_per_event2[,1])
+Fatalities_per_event2[,2] <- rownames(Fatalities_per_event2)
+colnames(Fatalities_per_event2) <- c("Deads","Event")
+rownames(Fatalities_per_event2) <- NULL
+
+#Data frame with the number of inujuries depending on the type of event:
+Injuries_per_event2 <- as.data.frame(tapply(Human_damage$Injuries, Human_damage$Event, sum))
+Injuries_per_event2[,1] <- as.numeric(Injuries_per_event2[,1])
+Injuries_per_event2[,2] <- rownames(Injuries_per_event2)
+colnames(Injuries_per_event2) <- c("Injuries","Event")
+rownames(Injuries_per_event2) <- NULL
+
+#Final dataframe with both injuries and deads
+Human_damage2 <- merge(Fatalities_per_event2, Injuries_per_event2)
+
+#Table
+Human_damage2
+
+```
+
+
+
+###1.3.2. Economic consequences due to atmospheric phenomena
+
+This part will prepare the data for extracting the results about the second question. 
+
+```{r}
+
+#Data frame with the cost in dollars depending on the type of event:
+Money_damage <- as.data.frame(tapply(data_money$cost, data_money$EVTYPE, sum))
+Money_damage[,1] <- as.numeric(Money_damage[,1])
+Money_damage[,2] <- rownames(Money_damage)
+colnames(Money_damage) <- c("Cost","Type_of_event")
+rownames(Money_damage) <- NULL
+
+#Table
+Money_damage
+```
+
+The same approach as the human health question will be applied in order to group the types of events. Some of them will be added to the previous list, as they are not in the population dataset. 
+
+
+```{r}
+
+Money_damage$Event<-revalue(Money_damage$Type_of_event,
+                            c("AVALANCHE"="Snow", "BLACK ICE"="Snow", "BLIZZARD"="Snow", "blowing snow"="Snow","BLOWING SNOW"="Snow", "EXCESSIVE SNOW"="Snow", "FALLING SNOW/ICE"="Snow", "FROST"="Snow", "GLAZE"="Snow", "GLAZE/ICE STORM"="Snow", "HAIL"="Snow", "HEAVY SNOW"="Snow", "Heavy snow shower"="Snow", "HEAVY SNOW/BLIZZARD/AVALANCHE"="Snow", "HEAVY SNOW/ICE"="Snow", "ICE"="Snow", "ICE ROADS"="Snow", "ICE STORM"="Snow", "ICE STORM/FLASH FLOOD"="Snow", "ICY ROADS"="Snow", "LIGHT SNOW"="Snow", "RAIN/SNOW"="Snow", "SMALL HAIL"="Snow", "Snow"="Snow", "SNOW"="Snow", "SNOW AND ICE"="Snow", "SNOW SQUALL"="Snow", "SNOW/HIGH WINDS"="Snow", "THUNDERSNOW"="Snow", "WINTER WEATHER"="Snow", "WINTER WEATHER MIX"="Snow", "WINTER WEATHER/MIX"="Snow", "WINTRY MIX"="Snow","FREEZE"="Snow", "FREEZING FOG"="Snow", "FROST/FREEZE"="Snow", "GLAZE ICE"="Snow", "HAIL 100"="Snow", "HAIL/WIND"="Snow", "HAIL/WINDS"="Snow", "HEAVY SNOW/HIGH WINDS & FLOOD"="Snow", "LAKE-EFFECT SNOW"="Snow", "MARINE HAIL"="Snow", "SLEET"="Snow",
+
+                              
+                            "BRUSH FIRE"="Fire", "WILD FIRES"="Fire", "WILD/FOREST FIRE"="Fire", "WILDFIRE"="Fire","FOREST FIRES"="Fire", "WILD/FOREST FIRES"="Fire", "WILDFIRES"="Fire",
+                            
+                            "LANDSLIDE"="Landslide", "LANDSLIDES"="Landslide", "Mudslide"="Landslide", 
+                            
+                            "HAZARDOUS SURF"="Sea", "HEAVY SURF"="Sea", "HEAVY SURF/HIGH SURF"="Sea", "HIGH"="Sea", "HIGH SEAS"="Sea", "High Surf"="Sea", "HIGH SURF"="Sea", "Marine Accident"="Sea", "MARINE MISHAP"="Sea", "RIP CURRENT"="Sea", "RIP CURRENTS"="Sea", "ROGUE WAVE"="Sea", "ROUGH SEAS"="Sea", "ROUGH SURF"="Sea", "TSUNAMI"="Sea", "WATERSPOUT"="Sea",  "ASTRONOMICAL HIGH TIDE"="Sea", "ASTRONOMICAL LOW TIDE"="Sea",
+                            
+                            "LIGHTNING"="Lightning", "LIGHTNING AND THUNDERSTORM WIN"="Lightning", "LIGHTNING INJURY"="Lightning",
+                            "COLD"="Cold", "EXTREME COLD"="Cold", "EXTREME WINDCHILL"="Cold",
+                            "LIGHTNING"="Lightning", "LIGHTNING AND THUNDERSTORM WIN"="Lightning", "LIGHTNING INJURY"="Lightning", 
+                            "COLD"="Cold", "EXTREME COLD"="Cold", "EXTREME WINDCHILL"="Cold",
+                            
+                            "COLD/WIND CHILL"="Wind", "DRY MIRCOBURST WINDS"="Wind", "EXTREME COLD/WIND CHILL"="Wind", "FUNNEL CLOUD"="Wind", "GUSTY WIND"="Wind", "Gusty winds"="Wind", "Gusty Winds"="Wind", "GUSTY WINDS"="Wind", "HIGH WIND"="Wind", "HIGH WIND 48"="Wind", "HIGH WIND AND SEAS"="Wind", "HIGH WIND/HEAVY SNOW"="Wind", "HIGH WINDS"="Wind", "HIGH WINDS/COLD"="Wind", "HIGH WINDS/SNOW"="Wind", "MARINE HIGH WIND"="Wind",   "MARINE STRONG WIND"="Wind", "MARINE THUNDERSTORM WIND"="Wind", "MARINE TSTM WIND"="Wind", "NON-SEVERE WIND DAMAGE"="Wind", "NON TSTM WIND"="Wind", "STRONG WIND"="Wind", "STRONG WINDS"="Wind", "THUNDERSTORM  WINDS"="Wind", "THUNDERSTORM WIND"="Wind","THUNDERSTORM WINDS"="Wind", "THUNDERSTORM WINDS 13"="Wind", "THUNDERSTORM WINDS/HAIL"="Wind", "THUNDERSTORM WINDSS"="Wind", "THUNDERSTORMS WINDS"="Wind", "TSTM WIND"="Wind", "TSTM WIND (G40)"="Wind", "TSTM WIND (G45)"="Wind", "TSTM WIND/HAIL"="Wind", "WIND"="Wind", "WINDS"="Wind", "HIGH WINDS HEAVY RAINS"="Wind", "SEVERE THUNDERSTORM WINDS"="Wind", "THUDERSTORM WINDS"="Wind", "THUNDERSTORM HAIL"="Wind", "THUNDERSTORM WINDS HAIL"="Wind", "THUNDERSTORM WINDS LIGHTNING"="Wind", "THUNDERSTORM WINDS/ FLOOD"="Wind", "THUNDERSTORMS WIND"="Wind", "WIND DAMAGE"="Wind",
+                            
+                            "TORNADO"="Tornado", "HURRICANE"="Tornado", "HURRICANE-GENERATED SWELLS"="Tornado", "Hurricane Edouard"="Tornado", "HURRICANE EMILY"="Tornado", "HURRICANE ERIN"="Tornado", "HURRICANE OPAL"="Tornado", "HURRICANE/TYPHOON"="Tornado", "TORNADO F2"="Tornado", "TORNADO F3"="Tornado", "TYPHOON"="Tornado", "WATERSPOUT TORNADO"="Tornado", "WATERSPOUT/TORNADO"="Tornado", "COLD AIR TORNADO"="Tornado", "GUSTNADO"="Tornado", "HURRICANE FELIX"="Tornado", "HURRICANE OPAL/HIGH WINDS"="Tornado", "TORNADO F0"="Tornado", "TORNADOES, TSTM WIND, HAIL" = "Tornado",
+                            
+                            "DENSE FOG"="Fog", "FOG"="Fog", "FOG AND COLD TEMPERATURES"="Fog","FREEZING FOG"="Fog",
+                            
+                            "Dust Devil"="Dust", "DUST DEVIL"="Dust", "DUST STORM"="Dust", "DENSE SMOKE"="Dust", "DUST STORM/HIGH WINDS"="Dust", "VOLCANIC ASHFALL"="Dust",
+                            
+                           "DROUGHT" ="Heat", "DRY MICROBURST" ="Heat", "EXCESSIVE HEAT" ="Heat", "EXTREME HEAT" ="Heat", "HEAT" ="Heat", "Heat Wave" ="Heat", "HEAT WAVE" ="Heat", "HEAT WAVE DROUGHT" ="Heat",  "RECORD HEAT" ="Heat", "UNSEASONABLY WARM" ="Heat", "WARM WEATHER" ="Heat",
+                           
+                           "COASTAL FLOOD"="Storm/Flood", "COASTAL FLOODING/EROSION"="Storm/Flood", "FLASH FLOOD"="Storm/Flood", "FLASH FLOODING"="Storm/Flood", "FLOOD"="Storm/Flood", "FLOOD/FLASH FLOOD"="Storm/Flood", "FLOODIN"="Storm/Flood", "Coastal Storm"="Storm/Flood", "COASTAL STORM"="Storm/Flood", "EXCESSIVE RAINFALL"="Storm/Flood", "FREEZING DRIZZLE"="Storm/Flood", "FREEZING RAIN"="Storm/Flood", "HEAVY RAIN"="Storm/Flood", "HEAVY RAINS"="Storm/Flood", "MIXED PRECIP"="Storm/Flood", "RIVER FLOOD"="Storm/Flood", "River Flooding"="Storm/Flood", "STORM SURGE"="Storm/Flood", "STORM SURGE/TIDE"="Storm/Flood", "THUNDERSTORM"="Storm/Flood", "THUNDERSTORMW"="Storm/Flood", "TIDAL FLOODING"="Storm/Flood", "Torrential Rainfall"="Storm/Flood", "TROPICAL STORM"="Storm/Flood", "TROPICAL STORM GORDON"="Storm/Flood", "URBAN/SML STREAM FLD"="Storm/Flood", "WINTER STORM"="Storm/Flood", "WINTER STORM HIGH WINDS"="Storm/Flood", "WINTER STORMS"="Storm/Flood", "COASTAL FLOODING"="Storm/Flood", "FLASH FLOOD/FLOOD"="Storm/Flood", "FLASH FLOODING/FLOOD"="Storm/Flood", "FLOODS"="Storm/Flood", "FLOODING"="Storm/Flood", "HEAVY RAINS/FLOODING"="Storm/Flood", "ICE JAM FLOODING"="Storm/Flood", "LAKESHORE FLOOD"="Storm/Flood", "RIVER FLOODING"="Storm/Flood", "TROPICAL DEPRESSION"="Storm/Flood", "TROPICAL STORM DEAN"="Storm/Flood", "TROPICAL STORM JERRY"="Storm/Flood", "URBAN FLOOD"="Storm/Flood", "URBAN FLOODING"="Storm/Flood", "SEVERE THUNDERSTORMS"="Storm/Flood", "Heavy Rain/High Surf" = "Storm/Flood", "SEICHE" = "Storm/Flood", "THUNDERSTORMS"= "Storm/Flood"))
+
+```
+
+
+Now it is possible to create a more generic dataset: 
+
+```{r}
+
+#Data frame with the number of fatalities depending on the type of event:
+Money_damage2 <- as.data.frame(tapply(Money_damage$Cost, Money_damage$Event, sum))
+Money_damage2[,1] <- as.numeric(Money_damage2[,1])
+Money_damage2[,2] <- rownames(Money_damage2)
+colnames(Money_damage2) <- c("Cost","Event")
+rownames(Money_damage2) <- NULL
+
+#Table
+Money_damage2
+
+```
+
+###1.4. Data Overview
+
+The next step is having a look at the data. As this study evaluates the impact of the  weather phenomena events to the human health and the economics, some statistics about number of injuries, fatalities and damage are provided.
+
+```{r}
+#Information about fatalities
+number_of_fatalities = sum(Human_damage2$Deads, na.rm=T)
+number_of_injuries = sum(Human_damage2$Injuries, na.rm=T)
+total_damage = sum(Money_damage2$Cost, na.rm=T)
+```
+
+Taking into account that the database currently contains data from **January 1950** to **November 2011**, the obtained results are: 
+
+- Fatalities: The number of registered fatalities is **`r number_of_fatalities`**. ()
+- Injuries: The number of registered injuries is **`r number_of_injuries`**. 
+- Damage: . In this case, the total amount is of **`r total_damage`**. 
+
+
+##2. Results
+
+###2.1. Harmful events for population health
+
+This part will focus on identifying which are the atmospheric phenomena that have most impact on the health of the population. The created datased *Human_damage2* will be used in order to create a graphics that illustrates the results. 
+
+The next two graphics represents the number of deads and the number of injuries depending on the type of event defined in the previous part.
+
+```{r}
+  ggplot(Human_damage2,aes(x=Event, group=1))+ 
+    geom_bar(stat = "identity", aes(y=Deads))+
+    labs(x="Event type",y="Deads")+
+    ggtitle("Number of deads per event type")+
+    theme_bw()+
+    scale_y_continuous(lim=c(0,5280), breaks=round(seq(0,6000,by=1000),1))+
+    theme(panel.grid.minor=element_line(colour="lightgrey"),
+          panel.grid.major=element_line(colour="grey"),
+          axis.text.x  = element_text(angle=45,hjust = 1,vjust = 1),
+          plot.title = element_text(face="bold"))
+
+  ggplot(Human_damage2,aes(x=Event, group=1))+ 
+    geom_bar(stat = "identity", aes(y=Injuries))+
+    labs(x="Event type",y="Deads")+
+    ggtitle("Number of injuries per event type")+
+    theme_bw()+
+    scale_y_continuous(lim=c(0,100000), breaks=round(seq(0,100000,by=10000),1))+
+    theme(panel.grid.minor=element_line(colour="lightgrey"),
+          panel.grid.major=element_line(colour="grey"),
+          axis.text.x  = element_text(angle=45,hjust = 1,vjust = 1),
+          plot.title = element_text(face="bold"))
+
+  par(mfrow=c(1,1))
+
+```
+
+The conclusion is that **Tornado** and **Wind** phenomena are the most dangerous for the population by far.
+
+The next step is to find the concrete events that most affected to the population. The threshold is up to 200 deads and 6000 injuries. 
+
+```{r}
+quantile(Human_damage$Deads, probs=c(0.9, 0.95, 0.975, 1))
+quantile(Human_damage$Injuries, probs=c(0.9, 0.95, 0.975, 1))
+
+more_deads <- which(Human_damage$Deads > 200)
+more_inj <-which(Human_damage$Injuries > 5000)
+Human_damage[more_deads, "Type_of_event"]
+Human_damage[more_inj, "Type_of_event"]
+
+```
+
+And the event with more deads and injuies correspond to: 
+
+```{r}
+most_dead <- which(Human_damage$Deads == 5227.0)
+more_inj <-which(Human_damage$Injuries == 91346.000)
+Human_damage[most_dead, "Type_of_event"]
+Human_damage[most_dead, "Type_of_event"]
+```
+
+
+###2.2. Economic consequences due to atmospheric phenomena
+This part will focus on identifying which are the atmospheric phenomena that have most impact on the economic field. The created datased *Money_damage2* will be used in order to create a graphics that illustrates the results. 
+
+The next graphics represents the total cost depending on the type of event. 
+
+```{r}
+  ggplot(Money_damage2,aes(x=Event, group=1))+ 
+    geom_bar(stat = "identity", aes(y=Cost))+
+    labs(x="Event type",y="Cost [$]")+
+    ggtitle("Total cost per event type")+
+    theme_bw()+
+    scale_y_continuous(lim=c(0,1.56e+11), breaks=round(seq(0,1.56e+11,by=2e+10),1))+
+    theme(panel.grid.minor=element_line(colour="lightgrey"),
+          panel.grid.major=element_line(colour="grey"),
+          axis.text.x  = element_text(angle=45,hjust = 1,vjust = 1),
+          plot.title = element_text(face="bold"))
+```
+
+The conclusion is that **Storm/Flood** and **Tornado** phenomena are the most expensive for the Unitet States. 
+
+The next step is to find the concrete events that most affected to the economic consequences. The threshold is up to 200 deads and 6000 injuries. 
+
+```{r}
+quantile(Money_damage$Deads, probs=c(0.9, 0.95, 0.975, 1))
+
+more_cost <- which(Money_damage$Deads > 10000000000)
+Money_damage[more_cost, "Type_of_event"]
+
+```
+
+And the event with more deads and injuies correspond to: 
+
+```{r}
+most_cost <- which(Money_damage$Deads == 138007444500)
+Money_damage[most_cost, "Type_of_event"]
+```
+
+##Conclusion
+Tornados are the phenomena that kill more people, whereas Floods are the events that cause more destruction and material losses.
+
+###P.S.
+Due to the lack of time, I could not do all the work I wish
